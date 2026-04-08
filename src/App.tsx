@@ -41,91 +41,117 @@ export default function App() {
     setShowConfirm(false);
   };
 
+  const waterPercentage = (totalToday % 1000) / 10;
+
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
       
       <header className="text-center pt-2 cursor-pointer" onClick={() => setShowConfirm(true)}>
         <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
-        <p className="text-sky-400 text-[9px] tracking-tighter uppercase">Pure Hydration</p>
+        <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
       </header>
 
-      {/* メイン表示エリア */}
       <div className="flex flex-col items-center gap-4">
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest text-sky-400">Total Today</p>
+          <p className="text-[10px] uppercase tracking-widest text-sky-400 font-bold">Total Today</p>
           <p className="text-4xl font-light">{totalToday}<span className="text-sm ml-1">ml</span></p>
         </div>
 
-        <div className="relative w-56 h-56 flex-shrink-0">
-          <div 
-            className="absolute inset-0 rounded-full border border-sky-200 z-10" 
-            style={{ boxShadow: 'inset 0 0 20px rgba(186, 230, 253, 0.5)' }}
-          />
-          <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20">
+        {/* クリスタル球体 */}
+        <div className="relative w-56 h-56 flex-shrink-0 overflow-hidden rounded-full">
+          {/* ガラスの質感 */}
+          <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
+          
+          <div className="absolute inset-0 overflow-hidden bg-sky-50/20 z-10">
+            {/* 揺れる水面 */}
             <motion.div 
-              className="absolute bottom-0 left-0 right-0 bg-sky-400/30"
-              animate={{ height: `${(totalToday % 1000) / 10}%` }}
+              className="absolute bottom-0 left-[-50%] right-[-50%] bg-sky-400/30"
+              animate={{ 
+                height: `${waterPercentage}%`,
+                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "38% 42% 40% 40%"],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ 
+                height: { duration: 1, ease: "easeOut" },
+                borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+              }}
+            />
+            {/* 重なる波のレイヤー */}
+            <motion.div 
+              className="absolute bottom-0 left-[-50%] right-[-50%] bg-sky-300/20"
+              animate={{ 
+                height: `${waterPercentage + 2}%`,
+                borderRadius: ["45% 35% 45% 35%", "38% 42% 40% 40%", "45% 35% 45% 35%"],
+                rotate: [0, -8, 8, 0]
+              }}
+              transition={{ 
+                height: { duration: 1, ease: "easeOut" },
+                borderRadius: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 7, repeat: Infinity, ease: "easeInOut" }
+              }}
             />
           </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-30">
+
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
             <span className="text-2xl font-extralight">{totalToday % 1000}</span>
-            <span className="text-[8px] text-sky-500/60 uppercase">ml / 1000</span>
+            <span className="text-[8px] text-sky-500/60 uppercase font-bold tracking-widest">ml / 1000</span>
           </div>
         </div>
       </div>
 
-      {/* 三日月バッジとUndoの列 */}
       <div className="flex flex-col items-center w-full">
+        {/* ★修正：透明感のある水色の三日月バッジとUndo */}
         <div className="flex gap-4 items-center z-20">
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-4 items-center relative">
             {[1000, 2000, 2500].map((goal, i) => (
               <div key={i} className="relative w-5 h-5">
+                {/* 達成時の美しい水色の輝き */}
                 <div 
-                  className={`w-full h-full rounded-full transition-all duration-1000 ${
-                    totalToday >= goal ? 'bg-[#fbbf24] shadow-[0_0_10px_#fbbf24]' : 'bg-sky-200/20'
+                  className={`absolute inset-0 rounded-full transition-all duration-1000 ${
+                    totalToday >= goal ? 'bg-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.7)]' : 'bg-sky-100/30'
                   }`}
                   style={{
-                    boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(0,0,0,0.1), 0 0 8px #fbbf24' : 'none',
+                    boxShadow: totalToday >= goal ? 'inset -3px 0px 0px 0px rgba(255,255,255,0.4), 0 0 12px rgba(56,189,248,0.6)' : 'none',
                     clipPath: 'circle(50% at 50% 50%)',
                     maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
-                    WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
+                    WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
+                    touchAction: 'none',
+                    pointerEvents: 'none',
                   }}
                 />
               </div>
             ))}
           </div>
-          <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}>
+          <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`} style={{ pointerEvents: 'auto', cursor: 'pointer', touchAction: 'manipulation' }}>
             <Undo className="w-4 h-4" />
           </button>
         </div>
-        
-        {/* 🌸 楓さんのための「ひといき」スペース */}
         <div className="h-8" /> 
       </div>
 
-      {/* 操作エリア */}
       <div className="w-full max-w-xs flex flex-col gap-4 pb-16 z-20">
         <div className="grid grid-cols-2 gap-4">
           <button onClick={() => addWater(250)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center transition-all active:scale-[0.96]">
             <Plus size={20} className="text-sky-400" />
-            <span className="text-sm">250ml</span>
+            <span className="text-sm font-medium">250ml</span>
           </button>
           <button onClick={() => addWater(500)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center transition-all active:scale-[0.96]">
             <Plus size={20} className="text-sky-400" />
-            <span className="text-sm">500ml</span>
+            <span className="text-sm font-medium">500ml</span>
           </button>
         </div>
 
         <button 
           onClick={() => setShowConfirm(true)}
           className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 mb-4 transition-all active:bg-white/80"
+          style={{ cursor: 'pointer', pointerEvents: 'auto', touchAction: 'manipulation' }}
         >
           <RotateCcw size={16} />
           <span className="text-xs uppercase tracking-widest font-light">Reset Data</span>
         </button>
       </div>
 
-      {/* 確認ダイアログ */}
       <AnimatePresence>
         {showConfirm && (
           <motion.div 
@@ -138,8 +164,8 @@ export default function App() {
             >
               <p className="text-sky-900 mb-6 font-medium">今日の記録をリセットして<br/>0mlに戻しますか？</p>
               <div className="flex flex-col gap-3">
-                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600">リセットする</button>
-                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200">キャンセル</button>
+                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600 transition-all active:scale-[0.98]">リセットする</button>
+                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200 transition-all active:scale-[0.98]">キャンセル</button>
               </div>
             </motion.div>
           </motion.div>
