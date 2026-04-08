@@ -57,8 +57,11 @@ export default function App() {
         </div>
 
         <div className="relative w-56 h-56 flex-shrink-0">
-          <div className="absolute inset-0 rounded-full border border-white/40 shadow-[inset_0_0_25px_rgba(255,255,255,0.5)] z-10" />
-          <div className="absolute inset-0 rounded-full overflow-hidden bg-white/10">
+          <div 
+            className="absolute inset-0 rounded-full border border-sky-200 z-10" 
+            style={{ boxShadow: 'inset 0 0 20px rgba(186, 230, 253, 0.5)' }}
+          />
+          <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20">
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-sky-400/30"
               animate={{ height: `${(totalToday % 1000) / 10}%` }}
