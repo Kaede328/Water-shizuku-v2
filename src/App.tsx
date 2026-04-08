@@ -68,13 +68,15 @@ export default function App() {
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30"
               animate={{ 
                 height: `${waterPercentage + 10}%`,
-                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"],
-                rotate: [0, 5, -5, 0] // 回転をより小さく
+                // 形の変化（borderRadius）の幅を「40%」前後にぎゅっと縮めて、変形を小さくしました
+                borderRadius: ["39% 41% 40% 40%", "41% 39% 41% 39%", "40% 40% 39% 41%"],
+                // 揺れる角度（rotate）を「2度」まで小さくして、暴れないようにしました
+                rotate: [0, 2, -2, 0] 
               }}
               transition={{ 
-                height: { duration: 1.5, ease: "easeInOut" }, // 変化をゆっくり
-                borderRadius: { duration: 12, repeat: Infinity, ease: "linear" }, // 12秒かけて1周（非常に穏やか）
-                rotate: { duration: 15, repeat: Infinity, ease: "easeInOut" } // 15秒かけて揺らす
+                height: { duration: 1 }, // スピードは元の「1秒」に戻しました
+                borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" }, // 4秒周期で細かく動きます
+                rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" } 
               }}
             />
             {/* 繊細なサブの波（逆回転で干渉を表現） */}
@@ -82,13 +84,13 @@ export default function App() {
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
               animate={{ 
                 height: `${waterPercentage + 12}%`,
-                borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"],
-                rotate: [0, -7, 7, 0] // 逆回転も小さく
+                borderRadius: ["41% 39% 41% 39%", "40% 40% 39% 41%", "39% 41% 40% 40%"],
+                rotate: [0, -3, 3, 0] // サブも揺れ幅は最小限に
               }}
               transition={{ 
-                height: { duration: 1.5, ease: "easeInOut" },
-                borderRadius: { duration: 10, repeat: Infinity, ease: "linear" }, // 10秒周期
-                rotate: { duration: 18, repeat: Infinity, ease: "easeInOut" } // 18秒周期
+                height: { duration: 1 },
+                borderRadius: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 4.5, repeat: Infinity, ease: "easeInOut" }
               }}
             />
           </div>
