@@ -1,12 +1,10 @@
 {
   "name": "水神の雫",
   "short_name": "水神の雫",
-  "description": "透明感あふれる水分補給管理アプリ",
   "start_url": "/Water-shizuku-v2/",
-  "scope": "/Water-shizuku-v2/",
   "display": "standalone",
-  "background_color": "#f0f9ff",
-  "theme_color": "#0ea5e9",
+  "background_color": "#ffffff",
+  "theme_color": "#38bdf8",
   "icons": [
     {
       "src": "Icon.jpg",
