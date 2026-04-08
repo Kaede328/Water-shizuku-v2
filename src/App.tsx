@@ -146,41 +146,45 @@ export default function App() {
         </div>
       </div>
 
-      {/* Crescent Badges */}
-      <div className="flex gap-4 h-6 items-center my-1">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="relative w-5 h-5">
-            <div 
-              className={`w-full h-full rounded-full transition-all duration-1000 ${
-                getBadgeActive(i) 
-                  ? 'bg-[#fbbf24] shadow-[0_0_10px_#fbbf24]' 
-                  : 'bg-sky-200/20'
-              }`}
-              style={{
-                boxShadow: getBadgeActive(i) ? 'inset -2px 0px 0px 0px rgba(0,0,0,0.1), 0 0 8px #fbbf24' : 'none',
-                clipPath: 'circle(50% at 50% 50%)',
-                maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
-                WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
-              }}
-            />
-          </div>
-        ))}
+      {/* Crescent Badges & Undo Button Row */}
+      <div className="flex gap-4 h-6 items-center my-1 relative z-[9999]">
+        <div className="flex gap-4 items-center">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="relative w-5 h-5">
+              <div 
+                className={`w-full h-full rounded-full transition-all duration-1000 ${
+                  getBadgeActive(i) 
+                    ? 'bg-[#fbbf24] shadow-[0_0_10px_#fbbf24]' 
+                    : 'bg-sky-200/20'
+                }`}
+                style={{
+                  boxShadow: getBadgeActive(i) ? 'inset -2px 0px 0px 0px rgba(0,0,0,0.1), 0 0 8px #fbbf24' : 'none',
+                  clipPath: 'circle(50% at 50% 50%)',
+                  maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
+                  WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
+                }}
+              />
+            </div>
+          ))}
+        </div>
+        
+        {/* Relocated Undo Button */}
+        <button 
+          onClick={undoWater}
+          disabled={state.history.length === 0}
+          className={`p-2 rounded-full transition-all active:scale-95 ml-2 ${
+            state.history.length > 0 ? 'text-sky-500 hover:bg-sky-100' : 'text-sky-200'
+          }`}
+          style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+          title="Undo"
+        >
+          <Undo className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Controls Section */}
       <div className="w-full max-w-xs flex flex-col gap-3 pb-10 z-[9999] relative" style={{ pointerEvents: 'auto' }}>
-        <div className="flex items-center justify-between gap-2">
-          <button 
-            onClick={undoWater}
-            disabled={state.history.length === 0}
-            className={`p-3 rounded-full transition-all active:scale-95 relative z-[9999] ${
-              state.history.length > 0 ? 'text-sky-500 hover:bg-sky-100' : 'text-sky-200'
-            }`}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <Undo className="w-6 h-6" />
-          </button>
-
+        <div className="flex items-center justify-center gap-2">
           <div className="flex bg-white/40 backdrop-blur-md rounded-full p-1 shadow-sm border border-white/50 flex-1 justify-center relative z-[9999]" style={{ pointerEvents: 'auto' }}>
             {(['water', 'tea', 'juice'] as DrinkType[]).map((type) => (
               <button
@@ -222,7 +226,7 @@ export default function App() {
             }
           }}
           className="w-full py-3.5 rounded-2xl bg-white/50 backdrop-blur-sm text-slate-400 flex items-center justify-center gap-2 transition-all active:scale-[0.98] relative border border-white/40 shadow-sm"
-          style={{ zIndex: 9999, pointerEvents: 'auto', cursor: 'pointer' }}
+          style={{ zIndex: 9999, pointerEvents: 'auto', cursor: 'pointer', position: 'relative' }}
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span className="text-[9px] tracking-[0.2em] uppercase font-light">Reset Daily Data</span>
