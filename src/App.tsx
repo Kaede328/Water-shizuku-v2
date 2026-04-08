@@ -225,31 +225,20 @@ export default function App() {
           </button>
         </div>
 
-        {/* Refined Reset Button - Ultra-Direct Implementation */}
+        {/* Refined Reset Button - Restored Layout with Guaranteed Functionality */}
         <button 
           type="button"
-          onClick={() => { 
-            if (window.confirm("今日の記録をリセットしますか？")) { 
-              localStorage.clear(); 
-              window.location.reload(); 
-            } 
+          onClick={() => {
+            if (window.confirm("今日の記録をリセットして、0mlに戻しますか？")) {
+              localStorage.clear();
+              window.location.reload();
+            }
           }}
-          style={{ 
-            position: 'fixed', 
-            bottom: '100px', 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
-            width: '85%', 
-            maxWidth: '320px',
-            zIndex: 999999, 
-            pointerEvents: 'all',
-            cursor: 'pointer',
-            touchAction: 'manipulation'
-          }}
-          className="py-4 bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl text-slate-400 flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.95]"
+          style={{ zIndex: 50, pointerEvents: 'auto', cursor: 'pointer' }}
+          className="w-full py-3.5 rounded-2xl bg-white/50 backdrop-blur-sm text-slate-400 flex items-center justify-center gap-2 transition-all active:scale-[0.98] relative border border-white/40 shadow-sm"
         >
-          <RotateCcw size={16} />
-          <span className="text-[10px] tracking-[0.2em] uppercase font-light">Reset Daily Data</span>
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span className="text-[9px] tracking-[0.2em] uppercase font-light">Reset Daily Data</span>
         </button>
       </div>
 
