@@ -68,13 +68,13 @@ export default function App() {
               className="absolute bottom-0 left-[-50%] right-[-50%] bg-sky-400/30"
               animate={{ 
                 height: `${waterPercentage}%`,
-                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "38% 42% 40% 40%"],
-                rotate: [0, 5, -5, 0]
+                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 35% 45%", "38% 42% 40% 40%"],
+                rotate: [0, 3, -2, 0]
               }}
               transition={{ 
-                height: { duration: 1, ease: "easeOut" },
-                borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" },
-                rotate: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+                height: { duration: 1.2, ease: "easeOut" },
+                borderRadius: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" }
               }}
             />
             {/* 重なる波のレイヤー */}
@@ -82,12 +82,12 @@ export default function App() {
               className="absolute bottom-0 left-[-50%] right-[-50%] bg-sky-300/20"
               animate={{ 
                 height: `${waterPercentage + 2}%`,
-                borderRadius: ["45% 35% 45% 35%", "38% 42% 40% 40%", "45% 35% 45% 35%"],
-                rotate: [0, -8, 8, 0]
+                borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "35% 45% 35% 45%", "45% 35% 45% 35%"],
+                rotate: [0, -5, 4, 0]
               }}
               transition={{ 
-                height: { duration: 1, ease: "easeOut" },
-                borderRadius: { duration: 5, repeat: Infinity, ease: "easeInOut" },
+                height: { duration: 1.2, ease: "easeOut" },
+                borderRadius: { duration: 6, repeat: Infinity, ease: "easeInOut" },
                 rotate: { duration: 7, repeat: Infinity, ease: "easeInOut" }
               }}
             />
