@@ -7,6 +7,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, RotateCcw, Undo } from 'lucide-react';
 
+// Global escape hatch for reset
+if (typeof window !== 'undefined') {
+  (window as any).resetApp = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+}
+
 // Constants
 const DAILY_GOAL = 2500;
 const CYCLE_MAX = 1000;
@@ -106,7 +114,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-gradient-to-b from-sky-100 to-white text-sky-900 font-sans selection:bg-sky-200 overflow-hidden flex flex-col items-center justify-between py-4 px-6">
+    <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans selection:bg-sky-200 overflow-hidden flex flex-col items-center justify-between py-4 px-6">
       
       {/* Header - Minimal */}
       <header className="text-center pt-2">
@@ -217,19 +225,31 @@ export default function App() {
           </button>
         </div>
 
-        {/* Refined Reset Button - Subtle Design with Guaranteed Functionality */}
+        {/* Refined Reset Button - Ultra-Direct Implementation */}
         <button 
+          type="button"
           onClick={() => { 
-            if (window.confirm('今日の記録をリセットして、0mlに戻しますか？')) {
+            if (window.confirm("今日の記録をリセットしますか？")) { 
               localStorage.clear(); 
               window.location.reload(); 
-            }
+            } 
           }}
-          className="w-full py-3.5 rounded-2xl bg-white/50 backdrop-blur-sm text-slate-400 flex items-center justify-center gap-2 transition-all active:scale-[0.98] relative border border-white/40 shadow-sm"
-          style={{ zIndex: 9999, pointerEvents: 'auto', cursor: 'pointer', position: 'relative' }}
+          style={{ 
+            position: 'fixed', 
+            bottom: '100px', 
+            left: '50%', 
+            transform: 'translateX(-50%)', 
+            width: '85%', 
+            maxWidth: '320px',
+            zIndex: 999999, 
+            pointerEvents: 'all',
+            cursor: 'pointer',
+            touchAction: 'manipulation'
+          }}
+          className="py-4 bg-white/60 backdrop-blur-md border border-white/50 rounded-2xl text-slate-400 flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.95]"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span className="text-[9px] tracking-[0.2em] uppercase font-light">Reset Daily Data</span>
+          <RotateCcw size={16} />
+          <span className="text-[10px] tracking-[0.2em] uppercase font-light">Reset Daily Data</span>
         </button>
       </div>
 
