@@ -93,7 +93,7 @@ export default function App() {
   const waterPercentage = (totalToday % 1000) / 10;
 
   return (
-    <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
+    <div className="h-screen w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-sky-50 to-sky-200 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><Bell className="w-4 h-4" /></button>
         <div className="text-center cursor-pointer" onClick={() => { triggerHaptic('light'); setShowConfirm(true); }}>
@@ -122,8 +122,41 @@ export default function App() {
           </AnimatePresence>
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
-            <motion.div className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30" animate={{ height: `${waterPercentage + 10}%`, borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"], rotate: [0, 2, -2, 0] }} transition={{ height: { duration: 1 }, borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } }} />
-            <motion.div className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20" animate={{ height: `${waterPercentage + 12}%`, borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"], rotate: [0, -3, 3, 0] }} transition={{ height: { duration: 1 }, borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } }} />
+            {/* ★1層目：深層の波（奥行きと深み） */}
+            <motion.div 
+              className="absolute bottom-[-15%] left-[-50%] right-[-50%]"
+              style={{
+                background: 'radial-gradient(circle at center, rgba(56, 189, 248, 0.4) 0%, rgba(14, 165, 233, 0.5) 100%)',
+              }}
+              animate={{ 
+                height: `${waterPercentage + 11}%`,
+                borderRadius: ["42% 38% 44% 36%", "36% 44% 38% 42%", "42% 38% 44% 36%"],
+                rotate: [0, 4, -4, 0] 
+              }}
+              transition={{ 
+                height: { duration: 1.2, ease: "easeInOut" }, 
+                borderRadius: { duration: 11, repeat: Infinity, ease: "linear" }, // 長い周期でゆったり
+                rotate: { duration: 13, repeat: Infinity, ease: "easeInOut" }
+              }}
+            />
+
+            {/* ★2層目：表層の波（透明感と光の反射） */}
+            <motion.div 
+              className="absolute bottom-[-15%] left-[-50%] right-[-50%]"
+              style={{
+                background: 'linear-gradient(180deg, rgba(186, 230, 253, 0.3) 0%, rgba(56, 189, 248, 0.2) 100%)',
+              }}
+              animate={{ 
+                height: `${waterPercentage + 13}%`,
+                borderRadius: ["38% 42% 36% 44%", "44% 36% 42% 38%", "38% 42% 36% 44%"],
+                rotate: [0, -5, 5, 0] // 逆方向に少し大きく揺らす
+              }}
+              transition={{ 
+                height: { duration: 1.2, ease: "easeInOut" },
+                borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, // 短い周期で細かく
+                rotate: { duration: 9, repeat: Infinity, ease: "easeInOut" }
+              }}
+            />
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
             <AnimatePresence>
