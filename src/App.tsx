@@ -38,11 +38,23 @@ export default function App() {
   };
 
   const finalReset = () => {
-    // リセット前に今日の分を履歴に保存（日付が変わるタイミングを想定）
     const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
-    const newWeekly = [{ date: todayStr, amount: totalToday }, ...weeklyHistory].slice(0, 7);
     
-    setWeeklyHistory(newWeekly);
+    setWeeklyHistory(prev => {
+      // 1. すでに今日の日付のデータがあるか探す
+      const existingIndex = prev.findIndex(item => item.date === todayStr);
+      
+      if (existingIndex !== -1) {
+        // 2. ある場合は、その日のデータを今回の合計（totalToday）に「更新」する
+        const updatedHistory = [...prev];
+        updatedHistory[existingIndex] = { date: todayStr, amount: totalToday };
+        return updatedHistory;
+      } else {
+        // 3. ない場合は、新しく先頭に追加して、7日分に絞る
+        return [{ date: todayStr, amount: totalToday }, ...prev].slice(0, 7);
+      }
+    });
+    
     setTotalToday(0);
     setHistory([]);
     setShowConfirm(false);
