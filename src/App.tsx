@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2 } from 'lucide-react';
 
 const STORAGE_KEY = 'water-shizuku-v2-final';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
+  const [weeklyHistory, setWeeklyHistory] = useState<{date: string, amount: number}[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -15,12 +17,13 @@ export default function App() {
       const parsed = JSON.parse(saved);
       setTotalToday(parsed.totalToday || 0);
       setHistory(parsed.history || []);
+      setWeeklyHistory(parsed.weeklyHistory || []);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history }));
-  }, [totalToday, history]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory }));
+  }, [totalToday, history, weeklyHistory]);
 
   const addWater = (amount: number) => {
     setHistory(prev => [totalToday, ...prev]);
@@ -35,7 +38,11 @@ export default function App() {
   };
 
   const finalReset = () => {
-    localStorage.clear();
+    // リセット前に今日の分を履歴に保存（日付が変わるタイミングを想定）
+    const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    const newWeekly = [{ date: todayStr, amount: totalToday }, ...weeklyHistory].slice(0, 7);
+    
+    setWeeklyHistory(newWeekly);
     setTotalToday(0);
     setHistory([]);
     setShowConfirm(false);
@@ -46,10 +53,11 @@ export default function App() {
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
       
-      {/* 予備のリセットスイッチも兼ねたヘッダー */}
-      <header className="text-center pt-2 cursor-pointer z-50" onClick={() => setShowConfirm(true)}>
-        <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
-        <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
+      <header className="text-center pt-2 flex flex-col items-center">
+        <div className="cursor-pointer" onClick={() => setShowConfirm(true)}>
+          <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
+          <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
+        </div>
       </header>
 
       <div className="flex flex-col items-center gap-4">
@@ -58,43 +66,28 @@ export default function App() {
           <p className="text-4xl font-light">{totalToday}<span className="text-sm ml-1">ml</span></p>
         </div>
 
-        {/* 繊細なゆらぎのクリスタル球体 */}
-        <div className="relative w-56 h-56 flex-shrink-0">
+        <div className="relative w-52 h-52 flex-shrink-0">
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
-          
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
-            {/* 繊細なメインの波 */}
             <motion.div 
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30"
               animate={{ 
                 height: `${waterPercentage + 10}%`,
-                // 形の変化（borderRadius）の幅を「40%」前後にぎゅっと縮めて、変形を小さくしました
-                borderRadius: ["39% 41% 40% 40%", "41% 39% 41% 39%", "40% 40% 39% 41%"],
-                // 揺れる角度（rotate）を「2度」まで小さくして、暴れないようにしました
+                borderRadius: ["38% 42% 40% 40%", "41% 39% 41% 39%", "40% 40% 39% 41%"],
                 rotate: [0, 2, -2, 0] 
               }}
-              transition={{ 
-                height: { duration: 1 }, // スピードは元の「1秒」に戻しました
-                borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" }, // 4秒周期で細かく動きます
-                rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" } 
-              }}
+              transition={{ height: { duration: 1 }, borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" } }}
             />
-            {/* 繊細なサブの波（逆回転で干渉を表現） */}
             <motion.div 
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
               animate={{ 
                 height: `${waterPercentage + 12}%`,
                 borderRadius: ["41% 39% 41% 39%", "40% 40% 39% 41%", "39% 41% 40% 40%"],
-                rotate: [0, -3, 3, 0] // サブも揺れ幅は最小限に
+                rotate: [0, -3, 3, 0]
               }}
-              transition={{ 
-                height: { duration: 1 },
-                borderRadius: { duration: 3.5, repeat: Infinity, ease: "easeInOut" },
-                rotate: { duration: 4.5, repeat: Infinity, ease: "easeInOut" }
-              }}
+              transition={{ height: { duration: 1 }, borderRadius: { duration: 3.5, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 4.5, repeat: Infinity, ease: "easeInOut" } }}
             />
           </div>
-
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
             <span className="text-2xl font-extralight">{totalToday % 1000}</span>
             <span className="text-[8px] text-sky-500/60 uppercase font-bold tracking-widest">ml / 1000</span>
@@ -102,18 +95,16 @@ export default function App() {
         </div>
       </div>
 
-      <div className="flex flex-col items-center w-full">
-        {/* 水色の月のバッジとUndo */}
-        <div className="flex gap-4 items-center z-20">
-          <div className="flex gap-4 items-center">
+      <div className="w-full flex flex-col items-center gap-4">
+        {/* 月のバッジとUndoと統計ボタン */}
+        <div className="flex gap-6 items-center z-20">
+          <div className="flex gap-3 items-center">
             {[1000, 2000, 2500].map((goal, i) => (
-              <div key={i} className="relative w-5 h-5">
+              <div key={i} className="relative w-4 h-4">
                 <div 
-                  className={`w-full h-full rounded-full transition-all duration-1000 ${
-                    totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'
-                  }`}
+                  className={`w-full h-full rounded-full transition-all duration-1000 ${totalToday >= goal ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'}`}
                   style={{
-                    boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none',
+                    boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 8px rgba(56,189,248,0.5)' : 'none',
                     clipPath: 'circle(50% at 50% 50%)',
                     maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
                     WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
@@ -122,50 +113,58 @@ export default function App() {
               </div>
             ))}
           </div>
-          <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}>
-            <Undo className="w-4 h-4" />
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-400 active:scale-90"><BarChart2 className="w-4 h-4" /></button>
+            <button onClick={undoWater} className={`p-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}><Undo className="w-4 h-4" /></button>
+          </div>
         </div>
-        <div className="h-8" /> 
+
+        {/* 履歴表示エリア（ふわっと出てくる） */}
+        <AnimatePresence>
+          {showStats && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              className="w-full max-w-[240px] bg-white/40 backdrop-blur-sm rounded-2xl p-4 overflow-hidden"
+            >
+              <p className="text-[10px] text-sky-500 font-bold mb-3 tracking-widest uppercase text-center">Last 7 Days</p>
+              <div className="flex flex-col gap-2">
+                {weeklyHistory.length === 0 ? (
+                  <p className="text-[10px] text-sky-300 text-center py-2">No history yet</p>
+                ) : (
+                  weeklyHistory.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center text-[11px]">
+                      <span className="text-sky-400">{item.date}</span>
+                      <div className="flex-1 mx-3 h-1 bg-sky-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-sky-400" style={{ width: `${Math.min((item.amount / 2500) * 100, 100)}%` }} />
+                      </div>
+                      <span className="font-medium text-sky-600">{item.amount}ml</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* 操作エリア */}
-      <div className="w-full max-w-xs flex flex-col gap-4 pb-16 z-20">
+      {/* 操作ボタン */}
+      <div className="w-full max-w-xs flex flex-col gap-4 pb-12 z-20">
         <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => addWater(250)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center transition-all active:scale-[0.96]">
-            <Plus size={20} className="text-sky-400" />
-            <span className="text-sm font-medium">250ml</span>
-          </button>
-          <button onClick={() => addWater(500)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center transition-all active:scale-[0.96]">
-            <Plus size={20} className="text-sky-400" />
-            <span className="text-sm font-medium">500ml</span>
-          </button>
+          <button onClick={() => addWater(250)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center active:scale-[0.96] transition-all"><Plus size={20} className="text-sky-400" /><span className="text-sm font-medium">250ml</span></button>
+          <button onClick={() => addWater(500)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center active:scale-[0.96] transition-all"><Plus size={20} className="text-sky-400" /><span className="text-sm font-medium">500ml</span></button>
         </div>
-
-        <button 
-          onClick={() => setShowConfirm(true)}
-          className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 mb-4 transition-all active:bg-white/80"
-        >
-          <RotateCcw size={16} />
-          <span className="text-xs uppercase tracking-widest font-light">Reset Data</span>
-        </button>
+        <button onClick={() => setShowConfirm(true)} className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 active:bg-white/80 transition-all"><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
       </div>
 
-      {/* 自作の確認ダイアログ */}
+      {/* リセット確認ダイアログ */}
       <AnimatePresence>
         {showConfirm && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-sky-900/40 backdrop-blur-md flex items-center justify-center p-6"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl"
-            >
-              <p className="text-sky-900 mb-6 font-medium">今日の記録をリセットして<br/>0mlに戻しますか？</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-sky-900/40 backdrop-blur-md flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl">
+              <p className="text-sky-900 mb-6 font-medium">今日の記録をリセットして<br/>履歴に保存しますか？</p>
               <div className="flex flex-col gap-3">
-                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600">リセットする</button>
-                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200">キャンセル</button>
+                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600 transition-all">リセットして保存</button>
+                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200 transition-all">キャンセル</button>
               </div>
             </motion.div>
           </motion.div>
