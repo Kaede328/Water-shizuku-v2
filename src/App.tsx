@@ -83,14 +83,22 @@ export default function App() {
     triggerHaptic('medium');
     checkOverhydration(amount);
     const newTotal = totalToday + amount;
+    
+    // 履歴と時間を記録
     setHistory(prev => [totalToday, ...prev]);
     setRecordTimes(prev => [Date.now(), ...prev]);
     
-    if (newTotal >= settings.dailyGoal && totalToday < settings.dailyGoal) {
+    // ★ 祝福の条件を復活！ 1000ml、2000ml、2500mlの境界を越えた時に発動
+    const milestones = [1000, 2000, 2500];
+    const reachedMilestone = milestones.find(m => totalToday < m && newTotal >= m);
+    
+    // 設定した目標（Daily Goal）に達した時も祝福
+    if (reachedMilestone || (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal)) {
       setShowCelebrate(true);
       triggerHaptic('success');
       setTimeout(() => setShowCelebrate(false), 4000);
     }
+    
     setTotalToday(newTotal);
   };
 
