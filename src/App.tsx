@@ -104,7 +104,8 @@ export default function App() {
             {showCelebrate && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }}
-                className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-200 via-sky-300 to-indigo-200 blur-xl z-0"
+                // ★ここを修正：blur-xl から blur-2xl に変更し、より端を溶け込ませました
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-200/50 via-sky-300/60 to-indigo-200/50 blur-2xl z-0"
               />
             )}
           </AnimatePresence>
