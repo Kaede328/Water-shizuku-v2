@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2 } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell } from 'lucide-react';
 
 const STORAGE_KEY = 'water-shizuku-v2-final';
 
@@ -25,6 +25,28 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory }));
   }, [totalToday, history, weeklyHistory]);
 
+  // 通知の許可を求める関数
+  const requestNotification = async () => {
+    if (!("Notification" in window)) {
+      alert("このブラウザはデスクトップ通知をサポートしていません。");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      alert('通知がオンになりました！1時間ごとにリマインドします（アプリが開いている間）');
+      // 1時間ごとに通知を出すタイマー（簡易版）
+      setInterval(() => {
+        new Notification("水神の雫", {
+          body: "楓さん、そろそろお水を一杯いかがですか？",
+          icon: "./Icon.jpg"
+        });
+      }, 3600000); // 3600000ミリ秒 = 1時間
+    } else {
+      alert('通知が拒否されました。ブラウザの設定から許可してください。');
+    }
+  };
+
   const addWater = (amount: number) => {
     setHistory(prev => [totalToday, ...prev]);
     setTotalToday(prev => prev + amount);
@@ -39,22 +61,15 @@ export default function App() {
 
   const finalReset = () => {
     const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
-    
     setWeeklyHistory(prev => {
-      // 1. すでに今日の日付のデータがあるか探す
       const existingIndex = prev.findIndex(item => item.date === todayStr);
-      
       if (existingIndex !== -1) {
-        // 2. ある場合は、その日のデータを今回の合計（totalToday）に「更新」する
         const updatedHistory = [...prev];
         updatedHistory[existingIndex] = { date: todayStr, amount: totalToday };
         return updatedHistory;
-      } else {
-        // 3. ない場合は、新しく先頭に追加して、7日分に絞る
-        return [{ date: todayStr, amount: totalToday }, ...prev].slice(0, 7);
       }
+      return [{ date: todayStr, amount: totalToday }, ...prev].slice(0, 7);
     });
-    
     setTotalToday(0);
     setHistory([]);
     setShowConfirm(false);
@@ -64,7 +79,6 @@ export default function App() {
 
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
-      
       <header className="text-center pt-2 flex flex-col items-center">
         <div className="cursor-pointer" onClick={() => setShowConfirm(true)}>
           <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
@@ -90,15 +104,6 @@ export default function App() {
               }}
               transition={{ height: { duration: 1 }, borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" } }}
             />
-            <motion.div 
-              className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
-              animate={{ 
-                height: `${waterPercentage + 12}%`,
-                borderRadius: ["41% 39% 41% 39%", "40% 40% 39% 41%", "39% 41% 40% 40%"],
-                rotate: [0, -3, 3, 0]
-              }}
-              transition={{ height: { duration: 1 }, borderRadius: { duration: 3.5, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 4.5, repeat: Infinity, ease: "easeInOut" } }}
-            />
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
             <span className="text-2xl font-extralight">{totalToday % 1000}</span>
@@ -108,7 +113,6 @@ export default function App() {
       </div>
 
       <div className="w-full flex flex-col items-center gap-4">
-        {/* 月のバッジとUndoと統計ボタン */}
         <div className="flex gap-6 items-center z-20">
           <div className="flex gap-3 items-center">
             {[1000, 2000, 2500].map((goal, i) => (
@@ -126,12 +130,12 @@ export default function App() {
             ))}
           </div>
           <div className="flex gap-2">
+            <button onClick={requestNotification} className="p-2 text-sky-400 active:scale-90"><Bell className="w-4 h-4" /></button>
             <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-400 active:scale-90"><BarChart2 className="w-4 h-4" /></button>
             <button onClick={undoWater} className={`p-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}><Undo className="w-4 h-4" /></button>
           </div>
         </div>
 
-        {/* 履歴表示エリア（ふわっと出てくる） */}
         <AnimatePresence>
           {showStats && (
             <motion.div 
@@ -140,26 +144,21 @@ export default function App() {
             >
               <p className="text-[10px] text-sky-500 font-bold mb-3 tracking-widest uppercase text-center">Last 7 Days</p>
               <div className="flex flex-col gap-2">
-                {weeklyHistory.length === 0 ? (
-                  <p className="text-[10px] text-sky-300 text-center py-2">No history yet</p>
-                ) : (
-                  weeklyHistory.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center text-[11px]">
-                      <span className="text-sky-400">{item.date}</span>
-                      <div className="flex-1 mx-3 h-1 bg-sky-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-sky-400" style={{ width: `${Math.min((item.amount / 2500) * 100, 100)}%` }} />
-                      </div>
-                      <span className="font-medium text-sky-600">{item.amount}ml</span>
+                {weeklyHistory.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center text-[11px]">
+                    <span className="text-sky-400">{item.date}</span>
+                    <div className="flex-1 mx-3 h-1 bg-sky-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-sky-400" style={{ width: `${Math.min((item.amount / 2500) * 100, 100)}%` }} />
                     </div>
-                  ))
-                )}
+                    <span className="font-medium text-sky-600">{item.amount}ml</span>
+                  </div>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* 操作ボタン */}
       <div className="w-full max-w-xs flex flex-col gap-4 pb-12 z-20">
         <div className="grid grid-cols-2 gap-4">
           <button onClick={() => addWater(250)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center active:scale-[0.96] transition-all"><Plus size={20} className="text-sky-400" /><span className="text-sm font-medium">250ml</span></button>
@@ -168,7 +167,6 @@ export default function App() {
         <button onClick={() => setShowConfirm(true)} className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 active:bg-white/80 transition-all"><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
       </div>
 
-      {/* リセット確認ダイアログ */}
       <AnimatePresence>
         {showConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-50 bg-sky-900/40 backdrop-blur-md flex items-center justify-center p-6">
