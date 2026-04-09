@@ -78,12 +78,21 @@ export default function App() {
 
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
-      <header className="text-center pt-2 flex flex-col items-center">
-        <div className="cursor-pointer" onClick={() => setShowConfirm(true)}>
-          <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
-          <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
-        </div>
-      </header>
+    {/* ヘッダーエリア：左右に控えめなアイコンを配置 */}
+    <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
+      <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors">
+        <Bell className="w-4 h-4" />
+      </button>
+
+      <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
+        <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
+        <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
+      </div>
+
+      <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-200 active:text-sky-400 transition-colors">
+        <BarChart2 className="w-4 h-4" />
+      </button>
+    </header>
 
       <div className="flex flex-col items-center gap-4">
         <div className="text-center">
@@ -111,29 +120,30 @@ export default function App() {
         </div>
       </div>
 
-      <div className="w-full flex flex-col items-center gap-4">
-        <div className="flex gap-6 items-center z-20">
-          <div className="flex gap-3 items-center">
-            {[1000, 2000, 2500].map((goal, i) => (
-              <div key={i} className="relative w-4 h-4">
-                <div 
-                  className={`w-full h-full rounded-full transition-all duration-1000 ${totalToday >= goal ? 'bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'}`}
-                  style={{
-                    boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 8px rgba(56,189,248,0.5)' : 'none',
-                    clipPath: 'circle(50% at 50% 50%)',
-                    maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
-                    WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={requestNotification} className="p-2 text-sky-400 active:scale-90"><Bell className="w-4 h-4" /></button>
-            <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-400 active:scale-90"><BarChart2 className="w-4 h-4" /></button>
-            <button onClick={undoWater} className={`p-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}><Undo className="w-4 h-4" /></button>
-          </div>
+    {/* 下部のバッジエリア：月だけが並ぶシンプルな空間に */}
+    <div className="w-full flex flex-col items-center gap-4">
+      <div className="flex gap-4 items-center z-20">
+        <div className="flex gap-4 items-center">
+          {[1000, 2000, 2500].map((goal, i) => (
+            <div key={i} className="relative w-5 h-5">
+              <div 
+                className={`w-full h-full rounded-full transition-all duration-1000 ${
+                  totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'
+                }`}
+                style={{
+                  boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none',
+                  clipPath: 'circle(50% at 50% 50%)',
+                  maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
+                  WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
+                }}
+              />
+            </div>
+          ))}
         </div>
+        <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}>
+          <Undo className="w-4 h-4" />
+        </button>
+      </div>
 
         <AnimatePresence>
           {showStats && (
