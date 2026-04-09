@@ -10,7 +10,16 @@ export default function App() {
   const [weeklyHistory, setWeeklyHistory] = useState<{date: string, amount: number}[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  const [showCelebrate, setShowCelebrate] = useState(false); // ★祝福演出のフラグ
+  const [showCelebrate, setShowCelebrate] = useState(false);
+
+  // ★触覚フィードバックを呼び出す関数
+  const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
+    if (window.navigator && window.navigator.vibrate) {
+      if (type === 'light') window.navigator.vibrate(10); // 短く軽い
+      if (type === 'medium') window.navigator.vibrate(30); // 少し強め
+      if (type === 'success') window.navigator.vibrate([10, 30, 10, 30]); // トントン、というリズム
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -27,6 +36,7 @@ export default function App() {
   }, [totalToday, history, weeklyHistory]);
 
   const requestNotification = async () => {
+    triggerHaptic('light'); // ボタン操作音の代わり
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       alert('通知をオンにしました。8:00〜22:00の間、1時間ごとにリマインドします。');
@@ -41,21 +51,22 @@ export default function App() {
   };
 
   const addWater = (amount: number) => {
+    triggerHaptic('medium'); // 水を足した時の手応え
     const newTotal = totalToday + amount;
     setHistory(prev => [totalToday, ...prev]);
     
-    // ★目標達成時の演出ロジック（1000, 2000, 2500mlに達した瞬間）
     if ((totalToday < 1000 && newTotal >= 1000) || 
         (totalToday < 2000 && newTotal >= 2000) || 
         (totalToday < 2500 && newTotal >= 2500)) {
       setShowCelebrate(true);
-      setTimeout(() => setShowCelebrate(false), 3000); // 3秒後に消す
+      triggerHaptic('success'); // 祝福の特別なリズム
+      setTimeout(() => setShowCelebrate(false), 3000);
     }
-    
     setTotalToday(newTotal);
   };
 
   const undoWater = () => {
+    triggerHaptic('light');
     if (history.length === 0) return;
     const [lastValue, ...remaining] = history;
     setTotalToday(lastValue);
@@ -63,6 +74,7 @@ export default function App() {
   };
 
   const finalReset = () => {
+    triggerHaptic('medium');
     const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
     setWeeklyHistory(prev => {
       const existingIndex = prev.findIndex(item => item.date === todayStr);
@@ -82,14 +94,13 @@ export default function App() {
 
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
-      
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><Bell className="w-4 h-4" /></button>
-        <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
+        <div className="text-center cursor-pointer" onClick={() => { triggerHaptic('light'); setShowConfirm(true); }}>
           <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
           <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
         </div>
-        <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><BarChart2 className="w-4 h-4" /></button>
+        <button onClick={() => { triggerHaptic('light'); setShowStats(!showStats); }} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><BarChart2 className="w-4 h-4" /></button>
       </header>
 
       <div className="flex flex-col items-center gap-4">
@@ -98,53 +109,28 @@ export default function App() {
           <p className="text-4xl font-light">{totalToday}<span className="text-sm ml-1">ml</span></p>
         </div>
 
-        {/* ★クリスタル球体エリア（祝福演出を追加） */}
         <div className="relative w-52 h-52 flex-shrink-0">
           <AnimatePresence>
             {showCelebrate && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }}
-                // ★ここを修正：rounded-full と overflow-hidden を追加し、四角い枠を物理的にカット
                 className="absolute inset-0 rounded-full overflow-hidden z-0"
               >
-                {/* 虹色のグラデーション本体 */}
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-200/50 via-sky-300/60 to-indigo-200/50 blur-2xl" />
               </motion.div>
             )}
           </AnimatePresence>
-
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
-          
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
-            {/* 1層目の波（メイン） */}
-            <motion.div 
-              className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30"
-              animate={{ 
-                height: `${waterPercentage + 10}%`,
-                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"],
-                rotate: [0, 2, -2, 0] 
-              }}
-              transition={{ height: { duration: 1 }, borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } }}
-            />
-            {/* 2層目の波（サブ） */}
-            <motion.div 
-              className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
-              animate={{ 
-                height: `${waterPercentage + 12}%`,
-                borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"],
-                rotate: [0, -3, 3, 0]
-              }}
-              transition={{ height: { duration: 1 }, borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
-            />
+            <motion.div className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30" animate={{ height: `${waterPercentage + 10}%`, borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"], rotate: [0, 2, -2, 0] }} transition={{ height: { duration: 1 }, borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } }} />
+            <motion.div className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20" animate={{ height: `${waterPercentage + 12}%`, borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"], rotate: [0, -3, 3, 0] }} transition={{ height: { duration: 1 }, borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } }} />
           </div>
-
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
-            {/* ★祝福時のテキスト演出 */}
             <AnimatePresence>
               {showCelebrate ? (
-                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center">
-                  <Sparkles className="w-8 h-8 text-white mb-2" />
-                  <span className="text-xl font-bold text-white tracking-widest">祝福の雫</span>
+                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center text-white">
+                  <Sparkles className="w-8 h-8 mb-2" />
+                  <span className="text-xl font-bold tracking-widest">祝福の雫</span>
                 </motion.div>
               ) : (
                 <div className="flex flex-col items-center">
@@ -162,19 +148,15 @@ export default function App() {
           <div className="flex gap-4 items-center">
             {[1000, 2000, 2500].map((goal, i) => (
               <div key={i} className="relative w-5 h-5">
-                <div 
-                  className={`w-full h-full rounded-full transition-all duration-1000 ${totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'}`}
-                  style={{ boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none', clipPath: 'circle(50% at 50% 50%)', maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)', WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)' }}
-                />
+                <div className={`w-full h-full rounded-full transition-all duration-1000 ${totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'}`} style={{ boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none', clipPath: 'circle(50% at 50% 50%)', maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)', WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)' }} />
               </div>
             ))}
           </div>
           <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}><Undo className="w-4 h-4" /></button>
         </div>
-        
         <AnimatePresence>
           {showStats && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="w-full max-w-[240px] bg-white/40 backdrop-blur-sm rounded-2xl p-4 overflow-hidden">
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="w-full max-w-[240px] bg-white/40 backdrop-blur-sm rounded-2xl p-4 overflow-hidden shadow-sm">
               <p className="text-[10px] text-sky-500 font-bold mb-3 tracking-widest uppercase text-center">Last 7 Days</p>
               <div className="flex flex-col gap-2">
                 {weeklyHistory.map((item, i) => (
@@ -197,7 +179,7 @@ export default function App() {
           <button onClick={() => addWater(250)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center active:scale-[0.96] transition-all"><Plus size={20} className="text-sky-400" /><span className="text-sm font-medium">250ml</span></button>
           <button onClick={() => addWater(500)} className="bg-white/60 py-4 rounded-2xl border border-white/50 shadow-sm flex flex-col items-center active:scale-[0.96] transition-all"><Plus size={20} className="text-sky-400" /><span className="text-sm font-medium">500ml</span></button>
         </div>
-        <button onClick={() => setShowConfirm(true)} className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 active:bg-white/80 transition-all"><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
+        <button onClick={() => { triggerHaptic('light'); setShowConfirm(true); }} className="w-full py-4 rounded-2xl bg-white/50 text-slate-400 flex items-center justify-center gap-2 border border-white/40 active:bg-white/80 transition-all"><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
       </div>
 
       <AnimatePresence>
@@ -207,7 +189,7 @@ export default function App() {
               <p className="text-sky-900 mb-6 font-medium">今日の記録をリセットして<br/>履歴に保存しますか？</p>
               <div className="flex flex-col gap-3">
                 <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600 transition-all">リセットして保存</button>
-                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200 transition-all">キャンセル</button>
+                <button onClick={() => { triggerHaptic('light'); setShowConfirm(false); }} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl active:bg-slate-200 transition-all">キャンセル</button>
               </div>
             </motion.div>
           </motion.div>
