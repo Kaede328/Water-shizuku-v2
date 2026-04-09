@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles } from 'lucide-react';
 
-const STORAGE_KEY = 'water-shizuku-v2-final';
+const STORAGE_KEY = 'water-shizuku-v3-final';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
@@ -10,6 +10,7 @@ export default function App() {
   const [weeklyHistory, setWeeklyHistory] = useState<{date: string, amount: number}[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showCelebrate, setShowCelebrate] = useState(false); // ★祝福演出のフラグ
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -25,30 +26,33 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory }));
   }, [totalToday, history, weeklyHistory]);
 
-  // 通知の許可とスケジュール設定
   const requestNotification = async () => {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       alert('通知をオンにしました。8:00〜22:00の間、1時間ごとにリマインドします。');
-      
       setInterval(() => {
         const now = new Date();
         const hour = now.getHours();
-
-        // 8時から22時の間だけ通知を実行
         if (hour >= 8 && hour < 22) {
-          new Notification("水神の雫", {
-            body: "楓さん、水分補給の時間ですよ。一口お水を飲みませんか？",
-            icon: "./Icon.jpg"
-          });
+          new Notification("水神の雫", { body: "楓さん、水分補給の時間ですよ。", icon: "./Icon.jpg" });
         }
-      }, 3600000); // 1時間ごとにチェック
+      }, 3600000);
     }
   };
 
   const addWater = (amount: number) => {
+    const newTotal = totalToday + amount;
     setHistory(prev => [totalToday, ...prev]);
-    setTotalToday(prev => prev + amount);
+    
+    // ★目標達成時の演出ロジック（1000, 2000, 2500mlに達した瞬間）
+    if ((totalToday < 1000 && newTotal >= 1000) || 
+        (totalToday < 2000 && newTotal >= 2000) || 
+        (totalToday < 2500 && newTotal >= 2500)) {
+      setShowCelebrate(true);
+      setTimeout(() => setShowCelebrate(false), 3000); // 3秒後に消す
+    }
+    
+    setTotalToday(newTotal);
   };
 
   const undoWater = () => {
@@ -78,21 +82,15 @@ export default function App() {
 
   return (
     <div className="h-screen w-full bg-gradient-to-b from-white to-sky-100 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
-    {/* ヘッダーエリア：左右に控えめなアイコンを配置 */}
-    <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
-      <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors">
-        <Bell className="w-4 h-4" />
-      </button>
-
-      <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
-        <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
-        <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
-      </div>
-
-      <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-200 active:text-sky-400 transition-colors">
-        <BarChart2 className="w-4 h-4" />
-      </button>
-    </header>
+      
+      <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
+        <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><Bell className="w-4 h-4" /></button>
+        <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
+          <h1 className="text-xl font-light tracking-widest mb-0.5">水神の雫</h1>
+          <p className="text-sky-400 text-[9px] tracking-tighter uppercase font-medium">Pure Hydration</p>
+        </div>
+        <button onClick={() => setShowStats(!showStats)} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><BarChart2 className="w-4 h-4" /></button>
+      </header>
 
       <div className="flex flex-col items-center gap-4">
         <div className="text-center">
@@ -100,10 +98,21 @@ export default function App() {
           <p className="text-4xl font-light">{totalToday}<span className="text-sm ml-1">ml</span></p>
         </div>
 
+        {/* ★クリスタル球体エリア（祝福演出を追加） */}
         <div className="relative w-52 h-52 flex-shrink-0">
+          <AnimatePresence>
+            {showCelebrate && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.2 }}
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-teal-200 via-sky-300 to-indigo-200 blur-xl z-0"
+              />
+            )}
+          </AnimatePresence>
+
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
+          
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
-            {/* ★1層目の波（メイン：少し濃い青） */}
+            {/* 1層目の波（メイン） */}
             <motion.div 
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30"
               animate={{ 
@@ -111,65 +120,57 @@ export default function App() {
                 borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"],
                 rotate: [0, 2, -2, 0] 
               }}
-              transition={{ 
-                height: { duration: 1 }, 
-                borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, // 7秒周期
-                rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } // 10秒周期
-              }}
+              transition={{ height: { duration: 1 }, borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } }}
             />
-            {/* ★2層目の波（サブ：薄い青、逆回転で干渉を表現） */}
+            {/* 2層目の波（サブ） */}
             <motion.div 
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
               animate={{ 
-                height: `${waterPercentage + 12}%`, // 少し高くして重なりを作る
+                height: `${waterPercentage + 12}%`,
                 borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"],
-                rotate: [0, -3, 3, 0] // 逆方向に揺らす
+                rotate: [0, -3, 3, 0]
               }}
-              transition={{ 
-                height: { duration: 1 },
-                borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, // 5秒周期
-                rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } // 8秒周期
-              }}
+              transition={{ height: { duration: 1 }, borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
             />
           </div>
+
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
-            <span className="text-2xl font-extralight">{totalToday % 1000}</span>
-            <span className="text-[8px] text-sky-500/60 uppercase font-bold tracking-widest">ml / 1000</span>
+            {/* ★祝福時のテキスト演出 */}
+            <AnimatePresence>
+              {showCelebrate ? (
+                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center">
+                  <Sparkles className="w-8 h-8 text-white mb-2" />
+                  <span className="text-xl font-bold text-white tracking-widest">祝福の雫</span>
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <span className="text-2xl font-extralight">{totalToday % 1000}</span>
+                  <span className="text-[8px] text-sky-500/60 uppercase font-bold tracking-widest">ml / 1000</span>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
 
-    {/* 下部のバッジエリア：月だけが並ぶシンプルな空間に */}
-    <div className="w-full flex flex-col items-center gap-4">
-      <div className="flex gap-4 items-center z-20">
-        <div className="flex gap-4 items-center">
-          {[1000, 2000, 2500].map((goal, i) => (
-            <div key={i} className="relative w-5 h-5">
-              <div 
-                className={`w-full h-full rounded-full transition-all duration-1000 ${
-                  totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'
-                }`}
-                style={{
-                  boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none',
-                  clipPath: 'circle(50% at 50% 50%)',
-                  maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)',
-                  WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)'
-                }}
-              />
-            </div>
-          ))}
+      <div className="w-full flex flex-col items-center gap-4">
+        <div className="flex gap-4 items-center z-20">
+          <div className="flex gap-4 items-center">
+            {[1000, 2000, 2500].map((goal, i) => (
+              <div key={i} className="relative w-5 h-5">
+                <div 
+                  className={`w-full h-full rounded-full transition-all duration-1000 ${totalToday >= goal ? 'bg-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.7)]' : 'bg-sky-200/20'}`}
+                  style={{ boxShadow: totalToday >= goal ? 'inset -2px 0px 0px 0px rgba(255,255,255,0.3), 0 0 10px rgba(56,189,248,0.5)' : 'none', clipPath: 'circle(50% at 50% 50%)', maskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)', WebkitMaskImage: 'radial-gradient(circle at 70% 30%, transparent 45%, black 46%)' }}
+                />
+              </div>
+            ))}
+          </div>
+          <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}><Undo className="w-4 h-4" /></button>
         </div>
-        <button onClick={undoWater} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? 'text-sky-500' : 'text-sky-200'}`}>
-          <Undo className="w-4 h-4" />
-        </button>
-      </div>
-
+        
         <AnimatePresence>
           {showStats && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-              className="w-full max-w-[240px] bg-white/40 backdrop-blur-sm rounded-2xl p-4 overflow-hidden"
-            >
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="w-full max-w-[240px] bg-white/40 backdrop-blur-sm rounded-2xl p-4 overflow-hidden">
               <p className="text-[10px] text-sky-500 font-bold mb-3 tracking-widest uppercase text-center">Last 7 Days</p>
               <div className="flex flex-col gap-2">
                 {weeklyHistory.map((item, i) => (
