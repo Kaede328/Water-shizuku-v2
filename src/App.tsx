@@ -93,7 +93,7 @@ export default function App() {
   const waterPercentage = (totalToday % 1000) / 10;
 
   return (
-    <div className="h-screen w-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white via-sky-50 to-sky-200 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
+    <div className="h-screen w-full bg-gradient-to-b from-white via-sky-50 to-sky-200 text-sky-900 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative">
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <button onClick={requestNotification} className="p-2 text-sky-200 active:text-sky-400 transition-colors"><Bell className="w-4 h-4" /></button>
         <div className="text-center cursor-pointer" onClick={() => { triggerHaptic('light'); setShowConfirm(true); }}>
@@ -122,7 +122,7 @@ export default function App() {
           </AnimatePresence>
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
-            {/* ★1層目：深層の波（奥行きと深み） */}
+            {/* ★1層目：重厚な低層の波（物理演算的なゆったり感） */}
             <motion.div 
               className="absolute bottom-[-15%] left-[-50%] right-[-50%]"
               style={{
@@ -130,17 +130,18 @@ export default function App() {
               }}
               animate={{ 
                 height: `${waterPercentage + 11}%`,
-                borderRadius: ["42% 38% 44% 36%", "36% 44% 38% 42%", "42% 38% 44% 36%"],
-                rotate: [0, 4, -4, 0] 
+                // 歪み方をより複雑に
+                borderRadius: ["38% 42% 40% 40%", "45% 35% 42% 38%", "35% 45% 35% 45%", "38% 42% 40% 40%"],
+                rotate: [0, 5, -3, 0] 
               }}
               transition={{ 
-                height: { duration: 1.2, ease: "easeInOut" }, 
-                borderRadius: { duration: 11, repeat: Infinity, ease: "linear" }, // 長い周期でゆったり
-                rotate: { duration: 13, repeat: Infinity, ease: "easeInOut" }
+                height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, // 独自のイージング
+                borderRadius: { duration: 13, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 17, repeat: Infinity, ease: "easeInOut" }
               }}
             />
 
-            {/* ★2層目：表層の波（透明感と光の反射） */}
+            {/* ★2層目：軽やかな表層の波（水面の反射と不規則性） */}
             <motion.div 
               className="absolute bottom-[-15%] left-[-50%] right-[-50%]"
               style={{
@@ -148,13 +149,14 @@ export default function App() {
               }}
               animate={{ 
                 height: `${waterPercentage + 13}%`,
-                borderRadius: ["38% 42% 36% 44%", "44% 36% 42% 38%", "38% 42% 36% 44%"],
-                rotate: [0, -5, 5, 0] // 逆方向に少し大きく揺らす
+                // 1層目とは全く違うリズムで変形
+                borderRadius: ["42% 38% 44% 36%", "38% 42% 35% 45%", "44% 36% 40% 40%", "42% 38% 44% 36%"],
+                rotate: [0, -6, 4, 0]
               }}
               transition={{ 
-                height: { duration: 1.2, ease: "easeInOut" },
-                borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, // 短い周期で細かく
-                rotate: { duration: 9, repeat: Infinity, ease: "easeInOut" }
+                height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] },
+                borderRadius: { duration: 8, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 11, repeat: Infinity, ease: "easeInOut" }
               }}
             />
           </div>
