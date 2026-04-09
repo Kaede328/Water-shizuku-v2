@@ -55,14 +55,19 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, settings }));
   }, [totalToday, history, weeklyHistory, settings]);
 
-  // 触覚フィードバック
   const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
+    // 設定がOFFなら何もしない
     if (settings.hapticIntensity === 0) return;
-    const factor = settings.hapticIntensity === 2 ? 0.5 : 1;
-    if (window.navigator?.vibrate) {
+
+    // ブラウザが対応しているかチェック
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      const factor = settings.hapticIntensity === 2 ? 0.5 : 1;
+      
       if (type === 'light') window.navigator.vibrate(10 * factor);
-      if (type === 'medium') window.navigator.vibrate(30 * factor);
-      if (type === 'success') window.navigator.vibrate([20 * factor, 50 * factor, 20 * factor]);
+      else if (type === 'medium') window.navigator.vibrate(30 * factor);
+      else if (type === 'success') window.navigator.vibrate([20 * factor, 50 * factor, 20 * factor]);
+      
+      console.log(`Haptic triggered: ${type}`); // 動作確認用
     }
   };
 
