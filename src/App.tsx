@@ -25,25 +25,24 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory }));
   }, [totalToday, history, weeklyHistory]);
 
-  // 通知の許可を求める関数
+  // 通知の許可とスケジュール設定
   const requestNotification = async () => {
-    if (!("Notification" in window)) {
-      alert("このブラウザはデスクトップ通知をサポートしていません。");
-      return;
-    }
-
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      alert('通知がオンになりました！1時間ごとにリマインドします（アプリが開いている間）');
-      // 1時間ごとに通知を出すタイマー（簡易版）
+      alert('通知をオンにしました。8:00〜22:00の間、1時間ごとにリマインドします。');
+      
       setInterval(() => {
-        new Notification("水神の雫", {
-          body: "楓さん、そろそろお水を一杯いかがですか？",
-          icon: "./Icon.jpg"
-        });
-      }, 3600000); // 3600000ミリ秒 = 1時間
-    } else {
-      alert('通知が拒否されました。ブラウザの設定から許可してください。');
+        const now = new Date();
+        const hour = now.getHours();
+
+        // 8時から22時の間だけ通知を実行
+        if (hour >= 8 && hour < 22) {
+          new Notification("水神の雫", {
+            body: "楓さん、水分補給の時間ですよ。一口お水を飲みませんか？",
+            icon: "./Icon.jpg"
+          });
+        }
+      }, 3600000); // 1時間ごとにチェック
     }
   };
 
