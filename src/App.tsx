@@ -103,14 +103,33 @@ export default function App() {
         <div className="relative w-52 h-52 flex-shrink-0">
           <div className="absolute inset-0 rounded-full border border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none" />
           <div className="absolute inset-0 rounded-full overflow-hidden bg-sky-50/20 z-10">
+            {/* ★1層目の波（メイン：少し濃い青） */}
             <motion.div 
               className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-400/30"
               animate={{ 
                 height: `${waterPercentage + 10}%`,
-                borderRadius: ["38% 42% 40% 40%", "41% 39% 41% 39%", "40% 40% 39% 41%"],
+                borderRadius: ["38% 42% 40% 40%", "45% 35% 45% 35%", "40% 40% 38% 42%"],
                 rotate: [0, 2, -2, 0] 
               }}
-              transition={{ height: { duration: 1 }, borderRadius: { duration: 4, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 5, repeat: Infinity, ease: "easeInOut" } }}
+              transition={{ 
+                height: { duration: 1 }, 
+                borderRadius: { duration: 7, repeat: Infinity, ease: "linear" }, // 7秒周期
+                rotate: { duration: 10, repeat: Infinity, ease: "easeInOut" } // 10秒周期
+              }}
+            />
+            {/* ★2層目の波（サブ：薄い青、逆回転で干渉を表現） */}
+            <motion.div 
+              className="absolute bottom-[-10%] left-[-50%] right-[-50%] bg-sky-300/20"
+              animate={{ 
+                height: `${waterPercentage + 12}%`, // 少し高くして重なりを作る
+                borderRadius: ["45% 35% 45% 35%", "40% 40% 38% 42%", "38% 42% 40% 40%"],
+                rotate: [0, -3, 3, 0] // 逆方向に揺らす
+              }}
+              transition={{ 
+                height: { duration: 1 },
+                borderRadius: { duration: 5, repeat: Infinity, ease: "linear" }, // 5秒周期
+                rotate: { duration: 8, repeat: Infinity, ease: "easeInOut" } // 8秒周期
+              }}
             />
           </div>
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
