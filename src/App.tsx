@@ -62,7 +62,7 @@ export default function App() {
     }
   };
 
-  // ★即時テスト通知ボタン用（メッセージをシンプルに修正）
+  // ★即時テスト通知ボタン用（タイトルを究極にシンプルに修正）
   const sendTestNotification = async () => {
     triggerHaptic('light');
     if (!("Notification" in window)) {
@@ -71,6 +71,7 @@ export default function App() {
     }
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
+      // タイトルを「水神の雫」のみに変更
       new Notification("水神の雫", {
         body: "ひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png" // アイコンのパスは環境に合わせて調整してくださいね
@@ -175,7 +176,14 @@ export default function App() {
         </div>
 
         <div className="relative w-52 h-52 flex-shrink-0">
-          <div className={`absolute inset-0 rounded-full border shadow-[inset_0_0_20px_rgba(186,230,253,0.5)] z-40 pointer-events-none ${isDarkMode ? 'border-indigo-500/30' : 'border-sky-200'}`} />
+          {/* ★祝福の瞬間、球体の縁が虹色に光る演出 */}
+          <motion.div 
+            className={`absolute inset-0 rounded-full border z-40 pointer-events-none transition-all duration-1000 ${
+              showCelebrate 
+              ? 'border-transparent shadow-[0_0_30px_rgba(255,255,255,0.8),inset_0_0_20px_rgba(255,255,255,0.5)] bg-gradient-to-tr from-pink-300/20 via-sky-300/20 to-emerald-300/20' 
+              : isDarkMode ? 'border-indigo-500/30 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]' : 'border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]'
+            }`} 
+          />
           <div className={`absolute inset-0 rounded-full overflow-hidden z-10 ${isDarkMode ? 'bg-indigo-900/20' : 'bg-sky-50/20'}`}>
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, rgba(14, 165, 233, 0.4) 100%)' }} animate={{ height: `${waterPercentage + 11}%`, borderRadius: ["38% 42% 40% 40%", "45% 35% 42% 38%", "35% 45% 35% 45%", "38% 42% 40% 40%"], rotate: [0, 5, -3, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 13, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 17, repeat: Infinity, ease: "easeInOut" } }} />
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'linear-gradient(180deg, rgba(186, 230, 253, 0.5) 0%, rgba(56, 189, 248, 0.3) 100%)' }} animate={{ height: `${waterPercentage + 13}%`, borderRadius: ["42% 38% 44% 36%", "38% 42% 35% 45%", "44% 36% 40% 40%", "42% 38% 44% 36%"], rotate: [0, -6, 4, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 8, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 11, repeat: Infinity, ease: "easeInOut" } }} />
@@ -183,22 +191,10 @@ export default function App() {
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
             <AnimatePresence>
               {showCelebrate ? (
-                <motion.div 
-                  initial={{ scale: 0.5, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }} 
-                  exit={{ scale: 1.5, opacity: 0 }} 
-                  className="flex flex-col items-center"
-                >
-                  <Sparkles className="w-8 h-8 mb-2 text-yellow-200 animate-pulse" />
-                  <span className={`text-xl font-black tracking-[0.2em] transition-all duration-1000 ${
-                    isDarkMode 
-                    ? 'bg-gradient-to-r from-pink-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' 
-                    : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(255,255,255,1)]'
-                  }`}
-                  style={{
-                    backgroundSize: '200% auto',
-                    animation: 'shimmer 2s linear infinite'
-                  }}>
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="flex flex-col items-center">
+                  <Sparkles className="w-8 h-8 mb-2 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                  {/* ★文字はシンプルに白、または濃紺。存在感を出すために太字に */}
+                  <span className={`text-2xl font-black tracking-[0.3em] ${isDarkMode ? 'text-white' : 'text-sky-900'} drop-shadow-md`}>
                     祝福の雫
                   </span>
                 </motion.div>
@@ -296,12 +292,21 @@ export default function App() {
 
       <AnimatePresence>
         {showConfirm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 text-center">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`${isDarkMode ? 'bg-slate-800 text-sky-100' : 'bg-white text-sky-900'} rounded-3xl p-8 w-full max-w-sm shadow-2xl`}>
-              <p className="mb-6 font-medium text-white">今日の記録をリセットして<br/>履歴に保存しますか？</p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-6 text-center">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              className={`rounded-[32px] p-8 w-full max-w-sm shadow-2xl transition-colors duration-1000 ${
+                isDarkMode ? 'bg-slate-800 text-sky-100' : 'bg-white text-sky-900'
+              }`}
+            >
+              {/* ★文字色をモードに合わせて変更 */}
+              <p className={`mb-8 font-bold leading-relaxed ${isDarkMode ? 'text-white' : 'text-sky-950'}`}>
+                今日の記録をリセットして<br/>履歴に保存しますか？
+              </p>
               <div className="flex flex-col gap-3">
-                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold">リセットして保存</button>
-                <button onClick={() => setShowConfirm(false)} className="w-full py-4 bg-slate-700/20 text-slate-400 rounded-2xl">キャンセル</button>
+                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98]">リセットして保存</button>
+                <button onClick={() => setShowConfirm(false)} className={`w-full py-4 rounded-2xl font-medium ${isDarkMode ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>キャンセル</button>
               </div>
             </motion.div>
           </motion.div>
