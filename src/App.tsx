@@ -37,11 +37,12 @@ export default function App() {
     }
   };
 
-  // ★ 過剰摂取チェック：1000ml以上の時だけ優しく声をかける
+  // ★ 過剰摂取チェック：1000ml以上の時に、潤いの知恵をそっと伝える
   const checkOverhydration = (amount: number) => {
     if (amount >= 1000) {
-      setOverhydrationMsg("一度にたくさん飲むよりも、\n少しずつ、ゆっくり飲みましょうね。");
-      setTimeout(() => setOverhydrationMsg(null), 6000);
+      setOverhydrationMsg("一度にたくさん飲むよりも、\n少しずつ、ゆっくり飲んだ方が\nもっと綺麗に、深く潤いますよ。");
+      // メッセージを少し長めに（7秒間）表示して、心に届けます
+      setTimeout(() => setOverhydrationMsg(null), 7000);
     }
   };
 
@@ -72,7 +73,7 @@ export default function App() {
   }, [settings.forceNightMode]);
 
   const addWater = (amount: number) => {
-    checkOverhydration(amount); // アドバイスをチェック
+    checkOverhydration(amount); // ここでメッセージを予約します
     const newTotal = totalToday + amount;
     setHistory(prev => [totalToday, ...prev]);
     setRecordTimes(prev => [Date.now(), ...prev]);
@@ -111,19 +112,24 @@ export default function App() {
         backgroundSize: isDarkMode ? '400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 400px 400px, 100% 100%' : '100% 100%'
       }}>
       
+      {/* ★ しずくからの優しいアドバイス（画面上部に浮遊） */}
       <AnimatePresence>
         {overhydrationMsg && (
-          <motion.div 
-            initial={{ y: -50, opacity: 0 }} 
-            animate={{ y: 20, opacity: 1 }} 
-            exit={{ y: -50, opacity: 0 }} 
-            className={`absolute top-12 z-[60] px-6 py-3 backdrop-blur-xl border rounded-2xl text-xs font-bold tracking-wider shadow-2xl text-center whitespace-pre-wrap transition-colors duration-1000 ${
-              isDarkMode 
-              ? 'bg-white/10 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
-              : 'bg-white/80 border-sky-200 text-sky-900 shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
-            }`}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 20 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute top-10 left-0 right-0 z-[100] flex justify-center px-6 pointer-events-none"
           >
-            {overhydrationMsg}
+            <div className={`px-6 py-4 rounded-2xl backdrop-blur-md shadow-lg border text-center transition-colors duration-1000 ${
+              isDarkMode 
+              ? 'bg-indigo-950/40 border-indigo-400/30 text-indigo-100' 
+              : 'bg-white/60 border-sky-100 text-sky-900'
+            }`}>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap font-light tracking-wider">
+                {overhydrationMsg}
+              </p>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
