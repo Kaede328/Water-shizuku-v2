@@ -16,12 +16,22 @@ export default function App() {
   const [showCelebrate, setShowCelebrate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
+  const [celebrateType, setCelebrateType] = useState<'normal' | 'special'>('normal');
 
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
     dailyGoal: 2500,
     forceNightMode: false 
   });
+
+  // ★ 水滴音の準備
+  const playWaterSound = () => {
+    const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/731/731-preview.mp3");
+    audio.volume = 0.3; // 楓さんの耳に優しい控えめな音量
+    audio.play().catch(() => {
+      // ユーザーが画面を一度も触れていない状態での再生制限を回避
+    });
+  };
 
   // ★ 通知：iPhoneの自動付与(from しずく)と繋がって1行に見えるように
   const sendFinalNotification = async () => {
@@ -72,17 +82,27 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
-  // ★ 1000mlごとに祝福し、飲みすぎ（1000ml同時）をチェックするロジック
+  // ★ 1000mlごとに祝福し、目標達成時には特別な演出を行うロジック
   const addWater = (amount: number) => {
+    // ★ 音を鳴らす
+    playWaterSound();
+
     checkOverhydration(amount);
     const newTotal = totalToday + amount;
     
-    // 1000mlの境界線を越えたか判定（1000, 2000...）
+    // 1000mlごとの境界線を越えたか判定
     const crossedThousand = Math.floor(newTotal / 1000) > Math.floor(totalToday / 1000);
-    
-    if (crossedThousand || (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal)) {
+    // 目標達成の瞬間か判定
+    const reachedGoal = totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal;
+
+    if (reachedGoal) {
+      setCelebrateType('special');
       setShowCelebrate(true);
-      setTimeout(() => setShowCelebrate(false), 4000);
+      setTimeout(() => setShowCelebrate(false), 5000); // 特別な方は少し長めに
+    } else if (crossedThousand) {
+      setCelebrateType('normal');
+      setShowCelebrate(true);
+      setTimeout(() => setShowCelebrate(false), 3500);
     }
 
     setHistory(prev => [totalToday, ...prev]);
@@ -187,57 +207,88 @@ export default function App() {
         <div className="relative w-52 h-52 flex-shrink-0">
           <motion.div 
             className={`absolute inset-0 rounded-full border z-40 pointer-events-none transition-all duration-1000 ${
-              showCelebrate 
-                ? isDarkMode
-                  ? 'border-transparent shadow-[0_0_40px_rgba(255,255,255,0.6),inset_0_0_30px_rgba(255,255,255,0.4)] bg-gradient-to-tr from-pink-400/40 via-sky-300/40 to-emerald-300/40' 
-                  : 'border-transparent shadow-[0_0_25px_rgba(56,189,248,0.5),inset_0_0_15px_rgba(255,255,255,0.6)] bg-gradient-to-tr from-pink-300/30 via-sky-300/30 to-emerald-400/30'
-                : isDarkMode 
-                  ? 'border-indigo-500/30 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]' 
-                  : 'border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]'
+              isDarkMode 
+                ? 'border-indigo-500/30 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]' 
+                : 'border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]'
             }`} 
           />
           <div className={`absolute inset-0 rounded-full overflow-hidden z-10 ${isDarkMode ? 'bg-indigo-900/20' : 'bg-sky-50/20'}`}>
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, rgba(14, 165, 233, 0.4) 100%)' }} animate={{ height: `${waterPercentage + 11}%`, borderRadius: ["38% 42% 40% 40%", "45% 35% 42% 38%", "35% 45% 35% 45%", "38% 42% 40% 40%"], rotate: [0, 5, -3, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 13, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 17, repeat: Infinity, ease: "easeInOut" } }} />
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'linear-gradient(180deg, rgba(186, 230, 253, 0.5) 0%, rgba(56, 189, 248, 0.3) 100%)' }} animate={{ height: `${waterPercentage + 13}%`, borderRadius: ["42% 38% 44% 36%", "38% 42% 35% 45%", "44% 36% 40% 40%", "42% 38% 44% 36%"], rotate: [0, -6, 4, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 8, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 11, repeat: Infinity, ease: "easeInOut" } }} />
           </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
-            <AnimatePresence>
-              {showCelebrate ? (
-                <motion.div 
-                  initial={{ scale: 0.95, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }} 
-                  exit={{ scale: 1.05, opacity: 0 }} 
-                  className="flex flex-col items-center bg-transparent shadow-none border-none" // 背景や枠を完全に排除
+          {/* ★ クリスタル中央：通常は数字を出さず、祝福時のみメッセージを表示 */}
+          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            <AnimatePresence mode="wait">
+              {showCelebrate && (
+                <motion.div
+                  key="blessing"
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  className="flex flex-col items-center justify-center text-center px-4"
                 >
-                  <Sparkles className={`w-5 h-5 mb-4 animate-pulse ${isDarkMode ? 'text-blue-100' : 'text-sky-300'}`} />
+                  <motion.div
+                    animate={{ y: [-3, 3, -3], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  >
+                    <Sparkles 
+                      className={`mb-3 ${isDarkMode ? 'text-blue-200' : 'text-sky-400'}`} 
+                      size={celebrateType === 'special' ? 24 : 18} 
+                    />
+                  </motion.div>
                   
-                  <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
-                    isDarkMode 
-                    ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
-                    : 'text-sky-900 drop-shadow-[0_0_10px_rgba(255,255,255,1)]'
+                  <span className={`font-extralight tracking-[0.5em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-300 to-pink-300 drop-shadow-sm ${
+                    celebrateType === 'special' ? 'text-3xl' : 'text-xl'
                   }`}>
                     祝福の雫
                   </span>
                   
-                  <motion.span 
-                    initial={{ opacity: 0, y: 5 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    transition={{ delay: 0.4 }}
-                    className={`text-[7px] mt-3 tracking-[0.3em] uppercase font-light ${isDarkMode ? 'text-blue-200/40' : 'text-sky-400/50'}`}
-                  >
-                    Blessing of water
-                  </motion.span>
+                  <span className={`text-[8px] mt-4 tracking-[0.3em] uppercase font-light ${
+                    isDarkMode ? 'text-blue-200/50' : 'text-sky-600/60'
+                  }`}>
+                    {celebrateType === 'special' ? 'Your body is deeply hydrated' : 'Blessing of Water'}
+                  </span>
                 </motion.div>
-              ) : (
-                <div className="flex flex-col items-center">
-                  <span className={`text-2xl font-extralight ${isDarkMode ? 'text-sky-100' : 'text-sky-900'}`}>{totalToday}</span>
-                  <span className={`text-[8px] uppercase font-bold tracking-widest ${isDarkMode ? 'text-indigo-400' : 'text-sky-500/60'}`}>total ml</span>
-                </div>
               )}
             </AnimatePresence>
           </div>
         </div>
       </div>
+
+      {/* ★ 祝福演出：鮮やか虹色版 */}
+      <AnimatePresence>
+        {showCelebrate && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={`fixed inset-0 z-[200] pointer-events-none flex items-center justify-center transition-colors duration-[2000ms] ${
+              isDarkMode ? 'bg-indigo-950/30' : 'bg-white/50' // 背景の白/紺を少し濃くしてコントラストを出す
+            }`}
+          >
+            {/* ★背景を彩る、ハッキリとした虹色のヴェール（1000ml/特別共通） */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ 
+                opacity: [0, 0.4, 0], // 不透明度を最大0.15から0.4へ大幅アップ
+                scale: [1, 1.1, 1] 
+              }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-tr from-blue-300/40 via-purple-300/40 to-pink-300/40 blur-2xl" // 色を濃く、blurを少し弱く
+            />
+
+            {/* 特別達成時のみの追加演出（これまで通り） */}
+            {celebrateType === 'special' && (
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1.5, opacity: [0, 0.3, 0] }} // こちらも少し濃く
+                transition={{ duration: 4, repeat: Infinity }}
+                className="absolute w-[600px] h-[600px] rounded-full bg-gradient-to-r from-blue-200 via-indigo-200 to-purple-200 blur-[120px]"
+              />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="w-full flex flex-col items-center gap-4">
         <div className="flex gap-4 items-center z-20">
@@ -278,7 +329,25 @@ export default function App() {
           <button onClick={() => addWater(250)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">250ml</span></button>
           <button onClick={() => addWater(500)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">500ml</span></button>
         </div>
-        <button onClick={() => setShowConfirm(true)} className={`w-full py-4 rounded-2xl bg-white/10 flex items-center justify-center gap-2 border border-white/5 active:bg-white/20 transition-all ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
+      </div>
+
+      {/* ★ 下部：リセットボタンひとつだけを、すりガラス仕様に */}
+      <div className="flex justify-center mt-12 mb-8 z-20">
+        <button
+          onClick={() => setShowConfirm(true)}
+          className={`group flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-500 border
+            /* すりガラスの魔法（半透明 + ぼかし） */
+            backdrop-blur-md
+            ${isDarkMode 
+              ? 'bg-indigo-950/20 border-indigo-400/20 hover:bg-indigo-900/40 hover:border-indigo-300/40 text-indigo-200/60' 
+              : 'bg-white/30 border-white/40 shadow-sm hover:bg-white/50 hover:border-white/60 text-sky-800/50'
+            }`}
+        >
+          <RotateCcw size={18} className="transition-transform group-active:rotate-[-180deg] duration-700" />
+          <span className="text-[9px] uppercase tracking-[0.2em] font-light">
+            Reset
+          </span>
+        </button>
       </div>
 
       <AnimatePresence>
