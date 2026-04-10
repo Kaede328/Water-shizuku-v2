@@ -70,6 +70,10 @@ export default function App() {
     const checkTime = () => {
       const hour = new Date().getHours();
       const isNightTime = hour >= 20 || hour < 5;
+      
+      // settings.forceNightMode が true なら強制ダーク、false なら時間帯に合わせる
+      // （もし「常に昼」にしたい場合は、設定のロジックをもう少し工夫できますが、
+      //  まずはボタンで「強制モード」をON/OFFできるようにします）
       setIsDarkMode(settings.forceNightMode || isNightTime);
     };
     checkTime();
@@ -191,8 +195,16 @@ export default function App() {
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <div className="flex gap-2">
           <button onClick={() => setShowSettings(true)} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-400'}`}><Settings className="w-4 h-4" /></button>
-          <button onClick={() => setSettings({...settings, forceNightMode: !settings.forceNightMode})} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-yellow-200' : 'text-indigo-400'}`}>
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {/* 太陽と月の切り替えボタン（メイン画面上部） */}
+          <button 
+            onClick={() => setSettings({ ...settings, forceNightMode: !settings.forceNightMode })} 
+            className={`p-3 rounded-2xl transition-all active:scale-90 ${
+              isDarkMode 
+                ? 'bg-white/5 text-indigo-300 border border-white/10' 
+                : 'bg-sky-50 text-sky-600 border border-sky-100'
+            }`}
+          >
+            {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
         </div>
         <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
