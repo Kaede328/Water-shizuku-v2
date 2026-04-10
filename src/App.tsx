@@ -66,22 +66,11 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, recordTimes, settings }));
   }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
-  // 1. ダークモードの決定ロジック（手動切り替えを最優先に）
+  // 1. シンプルなモード決定ロジック
   useEffect(() => {
-    const checkTime = () => {
-      // 手動設定（forceNightMode）がONなら常にダーク
-      if (settings.forceNightMode) {
-        setIsDarkMode(true);
-        return;
-      }
-      // OFFの場合は時間帯（20時〜5時）で自動判定
-      const hour = new Date().getHours();
-      const isNightTime = hour >= 20 || hour < 5;
-      setIsDarkMode(isNightTime);
-    };
-    checkTime();
-    const timer = setInterval(checkTime, 60000);
-    return () => clearInterval(timer);
+    // settings.forceNightMode が true ならダーク、false ならライト
+    // 時間による自動変化をなくし、楓さんの選択を尊重します
+    setIsDarkMode(settings.forceNightMode);
   }, [settings.forceNightMode]);
 
   // 2. 定時通知ロジック（毎時0分）
@@ -191,12 +180,12 @@ export default function App() {
       </AnimatePresence>
 
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
-        <div className="flex gap-2">
-          <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-white/5 text-indigo-300 border border-white/10' : 'bg-sky-50 text-sky-600 border border-sky-100'}`}>
+        <div className="flex gap-1"> {/* 隙間を詰めました */}
+          <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-600'}`}>
             <Settings className="w-5 h-5" />
           </button>
-          {/* 昼夜切り替えボタン（元に戻したシンプル版） */}
-          <button onClick={() => setSettings({...settings, forceNightMode: !settings.forceNightMode})} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-white/5 text-indigo-300 border border-white/10' : 'bg-sky-50 text-sky-600 border border-sky-100'}`}>
+          {/* 昼夜切り替えボタン（枠なし） */}
+          <button onClick={() => setSettings({...settings, forceNightMode: !settings.forceNightMode})} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-600'}`}>
             {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
         </div>
@@ -206,7 +195,9 @@ export default function App() {
         </div>
         <div className="flex gap-2">
           <button onClick={sendFinalNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
-          <button onClick={() => setShowStats(!showStats)} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><BarChart2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowStats(!showStats)} className={`p-3 rounded-2xl transition-all active:scale-90 ${showStats ? (isDarkMode ? 'bg-indigo-500 text-white shadow-lg' : 'bg-sky-500 text-white shadow-lg') : (isDarkMode ? 'text-indigo-300' : 'text-sky-600')}`}>
+            <BarChart2 className="w-5 h-5" />
+          </button>
         </div>
       </header>
 
@@ -329,8 +320,8 @@ export default function App() {
               initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} 
               className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border mb-6 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}
             >
-              <p className={`text-[10px] font-bold mb-4 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
-              <div className="h-32 w-full">
+              <p className={`text-[10px] font-bold mb-3 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
+              <div className="h-24 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={chartData} 
