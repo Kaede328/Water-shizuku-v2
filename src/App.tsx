@@ -77,30 +77,37 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
-  // ★ 1時間ごとの自動通知ロジック
+  // ★ 定時通知ロジック（朝8時〜夜22時の毎時0分）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
-    const checkHydration = () => {
-      // 最後に飲んだ時間を取得（なければ今の時間を基準に）
-      const lastDrink = recordTimes.length > 0 ? recordTimes[0] : Date.now();
-      const oneHour = 60 * 60 * 1000;
-      const now = Date.now();
+    const checkScheduledNotification = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
 
-      // 1時間以上経っている、かつ、その後にまだ通知を出していない場合
-      if (now - lastDrink >= oneHour) {
-        if (!lastNotificationTime || lastNotificationTime < lastDrink) {
-          sendFinalNotification();
-          setLastNotificationTime(now);
+      // 通知を送る時間帯（例：8時〜22時）
+      if (currentHour >= 8 && currentHour <= 22) {
+        // ちょうど0分（または0分を少し過ぎたタイミング）に通知
+        if (currentMinute === 0) {
+          // 同じ時間に二度送らないよう、最後に送った「時間（hour）」をチェック
+          const lastSentHour = lastNotificationTime ? new Date(lastNotificationTime).getHours() : -1;
+          
+          if (lastSentHour !== currentHour) {
+            sendFinalNotification();
+            setLastNotificationTime(now.getTime());
+          }
         }
       }
     };
 
-    // 起動時に一度チェックし、その後1分ごとに見守る
-    checkHydration(); 
-    const hydrationTimer = setInterval(checkHydration, 60000);
-    return () => clearInterval(hydrationTimer);
-  }, [recordTimes, lastNotificationTime, settings.notificationsEnabled]);
+    // アプリ起動時に一度チェック
+    checkScheduledNotification();
+
+    // 1分ごとに時計を確認
+    const timer = setInterval(checkScheduledNotification, 60000);
+    return () => clearInterval(timer);
+  }, [lastNotificationTime, settings.notificationsEnabled]);
 
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
