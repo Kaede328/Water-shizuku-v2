@@ -66,22 +66,25 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, recordTimes, settings }));
   }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
+  // 1. ダークモードの決定ロジック（手動切り替えを最優先に）
   useEffect(() => {
     const checkTime = () => {
+      // 手動設定（forceNightMode）がONなら常にダーク
+      if (settings.forceNightMode) {
+        setIsDarkMode(true);
+        return;
+      }
+      // OFFの場合は時間帯（20時〜5時）で自動判定
       const hour = new Date().getHours();
       const isNightTime = hour >= 20 || hour < 5;
-      
-      // settings.forceNightMode が true なら強制ダーク、false なら時間帯に合わせる
-      // （もし「常に昼」にしたい場合は、設定のロジックをもう少し工夫できますが、
-      //  まずはボタンで「強制モード」をON/OFFできるようにします）
-      setIsDarkMode(settings.forceNightMode || isNightTime);
+      setIsDarkMode(isNightTime);
     };
     checkTime();
     const timer = setInterval(checkTime, 60000);
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
-  // ★ 定時通知ロジック（朝8時〜夜22時の毎時0分）
+  // 2. 定時通知ロジック（毎時0分）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
@@ -90,13 +93,11 @@ export default function App() {
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
 
-      // 通知を送る時間帯（例：8時〜22時）
+      // 朝8時〜夜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // ちょうど0分（または0分を少し過ぎたタイミング）に通知
+        // 0分のタイミング（または0分にアプリを開いた時）
         if (currentMinute === 0) {
-          // 同じ時間に二度送らないよう、最後に送った「時間（hour）」をチェック
           const lastSentHour = lastNotificationTime ? new Date(lastNotificationTime).getHours() : -1;
-          
           if (lastSentHour !== currentHour) {
             sendFinalNotification();
             setLastNotificationTime(now.getTime());
@@ -105,11 +106,8 @@ export default function App() {
       }
     };
 
-    // アプリ起動時に一度チェック
-    checkScheduledNotification();
-
-    // 1分ごとに時計を確認
-    const timer = setInterval(checkScheduledNotification, 60000);
+    checkScheduledNotification(); // 起動時に即チェック
+    const timer = setInterval(checkScheduledNotification, 30000); // 精度を上げるため30秒ごとにチェック
     return () => clearInterval(timer);
   }, [lastNotificationTime, settings.notificationsEnabled]);
 
@@ -194,16 +192,11 @@ export default function App() {
 
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <div className="flex gap-2">
-          <button onClick={() => setShowSettings(true)} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-400'}`}><Settings className="w-4 h-4" /></button>
-          {/* 太陽と月の切り替えボタン（メイン画面上部） */}
-          <button 
-            onClick={() => setSettings({ ...settings, forceNightMode: !settings.forceNightMode })} 
-            className={`p-3 rounded-2xl transition-all active:scale-90 ${
-              isDarkMode 
-                ? 'bg-white/5 text-indigo-300 border border-white/10' 
-                : 'bg-sky-50 text-sky-600 border border-sky-100'
-            }`}
-          >
+          <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-white/5 text-indigo-300 border border-white/10' : 'bg-sky-50 text-sky-600 border border-sky-100'}`}>
+            <Settings className="w-5 h-5" />
+          </button>
+          {/* 昼夜切り替えボタン（元に戻したシンプル版） */}
+          <button onClick={() => setSettings({...settings, forceNightMode: !settings.forceNightMode})} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'bg-white/5 text-indigo-300 border border-white/10' : 'bg-sky-50 text-sky-600 border border-sky-100'}`}>
             {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
         </div>
@@ -332,7 +325,10 @@ export default function App() {
         
         <AnimatePresence>
           {showStats && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border mb-12 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}>
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} 
+              className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border mb-6 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}
+            >
               <p className={`text-[10px] font-bold mb-4 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
               <div className="h-32 w-full">
                 <ResponsiveContainer width="100%" height="100%">
