@@ -62,7 +62,7 @@ export default function App() {
     }
   };
 
-  // ★即時テスト通知ボタン用
+  // ★即時テスト通知ボタン用（メッセージをシンプルに修正）
   const sendTestNotification = async () => {
     triggerHaptic('light');
     if (!("Notification" in window)) {
@@ -72,8 +72,8 @@ export default function App() {
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       new Notification("水神の雫", {
-        body: "楓さん、ひと口お水を飲んでリフレッシュしませんか？✨",
-        icon: "/pwa-192x192.png"
+        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
+        icon: "/pwa-192x192.png" // アイコンのパスは環境に合わせて調整してくださいね
       });
     }
   };
@@ -135,7 +135,16 @@ export default function App() {
       
       <AnimatePresence>
         {overhydrationMsg && (
-          <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ y: -50, opacity: 0 }} className="absolute top-12 z-[60] px-6 py-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-xs font-medium tracking-wider shadow-2xl text-white text-center whitespace-pre-wrap">
+          <motion.div 
+            initial={{ y: -50, opacity: 0 }} 
+            animate={{ y: 20, opacity: 1 }} 
+            exit={{ y: -50, opacity: 0 }} 
+            className={`absolute top-12 z-[60] px-6 py-3 backdrop-blur-xl border rounded-2xl text-xs font-bold tracking-wider shadow-2xl text-center whitespace-pre-wrap transition-colors duration-1000 ${
+              isDarkMode 
+              ? 'bg-white/10 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.3)]' 
+              : 'bg-white/80 border-sky-200 text-sky-900 shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
+            }`}
+          >
             {overhydrationMsg}
           </motion.div>
         )}
@@ -171,12 +180,27 @@ export default function App() {
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'radial-gradient(circle, rgba(56, 189, 248, 0.6) 0%, rgba(14, 165, 233, 0.4) 100%)' }} animate={{ height: `${waterPercentage + 11}%`, borderRadius: ["38% 42% 40% 40%", "45% 35% 42% 38%", "35% 45% 35% 45%", "38% 42% 40% 40%"], rotate: [0, 5, -3, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 13, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 17, repeat: Infinity, ease: "easeInOut" } }} />
             <motion.div className="absolute bottom-[-15%] left-[-50%] right-[-50%]" style={{ background: 'linear-gradient(180deg, rgba(186, 230, 253, 0.5) 0%, rgba(56, 189, 248, 0.3) 100%)' }} animate={{ height: `${waterPercentage + 13}%`, borderRadius: ["42% 38% 44% 36%", "38% 42% 35% 45%", "44% 36% 40% 40%", "42% 38% 44% 36%"], rotate: [0, -6, 4, 0] }} transition={{ height: { duration: 1.5, ease: [0.4, 0, 0.2, 1] }, borderRadius: { duration: 8, repeat: Infinity, ease: "easeInOut" }, rotate: { duration: 11, repeat: Infinity, ease: "easeInOut" } }} />
           </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-white text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
             <AnimatePresence>
               {showCelebrate ? (
-                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center">
-                  <Sparkles className="w-8 h-8 mb-2 text-yellow-200" />
-                  <span className="text-xl font-bold tracking-widest text-shadow-glow">祝福の雫</span>
+                <motion.div 
+                  initial={{ scale: 0.5, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  exit={{ scale: 1.5, opacity: 0 }} 
+                  className="flex flex-col items-center"
+                >
+                  <Sparkles className="w-8 h-8 mb-2 text-yellow-200 animate-pulse" />
+                  <span className={`text-xl font-black tracking-[0.2em] transition-all duration-1000 ${
+                    isDarkMode 
+                    ? 'bg-gradient-to-r from-pink-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' 
+                    : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(255,255,255,1)]'
+                  }`}
+                  style={{
+                    backgroundSize: '200% auto',
+                    animation: 'shimmer 2s linear infinite'
+                  }}>
+                    祝福の雫
+                  </span>
                 </motion.div>
               ) : (
                 <div className="flex flex-col items-center">
