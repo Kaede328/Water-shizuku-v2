@@ -17,6 +17,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
   const [celebrateType, setCelebrateType] = useState<'normal' | 'special'>('normal');
+  const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
 
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
@@ -73,8 +74,34 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
+  // ★ 1時間ごとの自動通知ロジック
+  useEffect(() => {
+    if (!settings.notificationsEnabled) return;
+
+    const checkHydration = () => {
+      // 最後に飲んだ時間（記録がない場合は現在時刻を起点にする）
+      const lastDrink = recordTimes[0] || Date.now();
+      const oneHour = 60 * 60 * 1000;
+      const now = Date.now();
+
+      // 1時間以上経過しており、かつその1時間の間でまだ通知を送っていない場合
+      if (now - lastDrink >= oneHour && (!lastNotificationTime || lastNotificationTime < lastDrink)) {
+        sendFinalNotification();
+        setLastNotificationTime(now); // 送信済みとして記録
+      }
+    };
+
+    // 1分ごとに状況を確認
+    const hydrationTimer = setInterval(checkHydration, 60000);
+    return () => clearInterval(hydrationTimer);
+  }, [recordTimes, lastNotificationTime, settings.notificationsEnabled]);
+
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
+    const now = Date.now();
+    setRecordTimes(prev => [now, ...prev]); // 先に時間を更新
+    setLastNotificationTime(null); // 飲んだので通知フラグをリセット
+
     // 飲みすぎチェックのみ実行
     checkOverhydration(amount);
     
@@ -96,7 +123,6 @@ export default function App() {
 
     // 履歴の更新
     setHistory(prev => [totalToday, ...prev]);
-    setRecordTimes(prev => [Date.now(), ...prev]);
     setTotalToday(newTotal);
   };
 
@@ -208,49 +234,93 @@ export default function App() {
           </div>
           {/* ★ クリスタル中央：通常は数字を出さず、祝福時のみメッセージを表示 */}
           <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {showCelebrate && (
-                /* ★クリスタルの中だけを祝福の舞台に。画面全体はそのまま。 */
-                <motion.div
-                  key="blessing"
-                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 1.1 }}
-                  className="flex flex-col items-center justify-center text-center px-4"
-                >
-                  {/* ★虹色の光の粒 */}
-                  <motion.div
-                    animate={{ y: [-3, 3, -3], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                  >
-                    <Sparkles 
-                      className={`mb-3 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'} ${celebrateType === 'special' ? 'w-8 h-8' : 'w-6 h-6'}`} 
-                      style={{ 
-                        /* ★特別達成時のみ、光の輪を少し濃く */
-                        filter: celebrateType === 'special' ? 'drop-shadow(0 0 10px rgba(129,140,248,0.6))' : 'drop-shadow(0 0 5px rgba(255,255,255,0.4))'
-                      }}
-                    />
-                  </motion.div>
-                  
-                  {/* ★復活！ハッキリとした虹色のグラデーションテキスト */}
-                  <span className={`font-extralight tracking-[0.6em] transition-all duration-1000 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-300 to-pink-300 drop-shadow-sm ${
-                    celebrateType === 'special' ? 'text-3xl' : 'text-xl'
-                  }`}>
-                    祝福の雫
-                  </span>
-                  
-                  {/* ★特別達成時のみ表示される英語サブテキスト */}
+                <>
+                  {/* 1. 【特別：目標達成時】全画面を広く使った祝福演出 */}
                   {celebrateType === 'special' && (
-                    <motion.span 
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 0.6 }} 
-                      transition={{ delay: 0.8 }}
-                      className={`text-[9px] mt-4 tracking-[0.4em] uppercase font-light ${isDarkMode ? 'text-blue-100' : 'text-sky-600'}`}
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className={`fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-center transition-colors duration-[2000ms] ${
+                        isDarkMode ? 'bg-indigo-950/40' : 'bg-white/60'
+                      }`}
                     >
-                      Your body is deeply hydrated
-                    </motion.span>
+                      {/* 背景の大きな虹色のオーロラ */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ 
+                          opacity: [0, 0.4, 0], // 不透明度を上げてハッキリと
+                          scale: [1, 1.2, 1] 
+                        }}
+                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 bg-gradient-to-tr from-blue-300/40 via-purple-300/40 to-pink-300/40 blur-[100px]"
+                      />
+                      
+                      {/* 画面中央に大きく表示されるテキスト */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex flex-col items-center justify-center text-center px-6 relative z-10"
+                      >
+                        <motion.div
+                          animate={{ y: [-5, 5, -5], opacity: [0.7, 1, 0.7] }}
+                          transition={{ duration: 4, repeat: Infinity }}
+                        >
+                          <Sparkles 
+                            className={`mb-6 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'} w-12 h-12`} 
+                          />
+                        </motion.div>
+                        
+                        <span className={`font-extralight tracking-[0.7em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 drop-shadow-lg text-5xl`}>
+                          祝福の雫
+                        </span>
+                        
+                        <motion.span 
+                          initial={{ opacity: 0 }} 
+                          animate={{ opacity: 0.7 }} 
+                          transition={{ delay: 1.0 }}
+                          className={`text-[10px] mt-6 tracking-[0.5em] uppercase font-light ${isDarkMode ? 'text-blue-100' : 'text-sky-700'}`}
+                        >
+                          Your body is deeply hydrated
+                        </motion.span>
+                      </motion.div>
+                    </motion.div>
                   )}
-                </motion.div>
+
+                  {/* 2. 【通常：1000mlごと】クリスタルの中心に浮かぶ祝福 */}
+                  {celebrateType === 'normal' && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 1.1 }}
+                        className="flex flex-col items-center justify-center text-center px-4"
+                      >
+                        <motion.div
+                          animate={{ y: [-3, 3, -3], opacity: [0.7, 1, 0.7] }}
+                          transition={{ duration: 3, repeat: Infinity }}
+                        >
+                          <Sparkles 
+                            className={`mb-3 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'} w-5 h-5`} 
+                          />
+                        </motion.div>
+                        
+                        <span className={`font-extralight tracking-[0.6em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 drop-shadow-sm text-xl`}>
+                          祝福の雫
+                        </span>
+                        
+                        <span className={`text-[8px] mt-4 tracking-[0.4em] uppercase font-light ${
+                          isDarkMode ? 'text-blue-100/60' : 'text-sky-700/70'
+                        }`}>
+                          Blessing of Water
+                        </span>
+                      </motion.div>
+                    </div>
+                  )}
+                </>
               )}
             </AnimatePresence>
           </div>
@@ -292,27 +362,44 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      <div className="w-full max-w-xs flex flex-col gap-4 pb-12 z-20">
-        <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => addWater(250)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">250ml</span></button>
-          <button onClick={() => addWater(500)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">500ml</span></button>
-        </div>
+      {/* ★ 250ml & 500ml：氷のような透明感のあるボタン */}
+      <div className="flex gap-4 mb-8 z-20">
+        {[250, 500].map((amount) => (
+          <button
+            key={amount}
+            onClick={() => addWater(amount)}
+            className={`relative overflow-hidden group px-8 py-4 rounded-2xl transition-all duration-500 border
+              /* 氷の質感：高い透明度と強めのぼかし */
+              backdrop-blur-xl shadow-lg
+              ${isDarkMode 
+                ? 'bg-white/5 border-white/10 hover:bg-white/10 text-blue-100 shadow-blue-900/10' 
+                : 'bg-white/40 border-white/60 hover:bg-white/60 text-sky-900 shadow-sky-100/50'
+              }`}
+          >
+            {/* 氷の表面の反射光 */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            
+            <span className="relative z-10 text-sm font-extralight tracking-widest italic">
+              +{amount}ml
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* ★ 下部：リセットボタン（RESET DATA） すりガラス仕様 */}
+      {/* ★ 下部：RESET DATA 横一列・氷のすりガラス仕様 */}
       <div className="flex justify-center mt-12 mb-8 z-20">
         <button
           onClick={() => setShowConfirm(true)}
-          className={`group flex flex-col items-center gap-2 p-5 rounded-3xl transition-all duration-500 border
-            /* すりガラスの魔法（半透明 + ぼかし） */
-            backdrop-blur-md
+          className={`group flex flex-row items-center gap-4 px-8 py-4 rounded-full transition-all duration-700 border
+            /* 氷の質感：カプセル型の氷が水面に浮かぶイメージ */
+            backdrop-blur-xl shadow-md
             ${isDarkMode 
-              ? 'bg-indigo-950/20 border-indigo-400/20 hover:bg-indigo-900/40 hover:border-indigo-300/40 text-indigo-200/60' 
-              : 'bg-white/30 border-white/40 shadow-sm hover:bg-white/50 hover:border-white/60 text-sky-800/50'
+              ? 'bg-white/5 border-white/10 hover:bg-white/10 text-blue-200/60 shadow-indigo-900/20' 
+              : 'bg-white/40 border-white/70 hover:bg-white/60 text-sky-800/50 shadow-sky-100/40'
             }`}
         >
-          <RotateCcw size={20} className="transition-transform group-active:rotate-[-180deg] duration-700" />
-          <span className="text-[10px] uppercase tracking-[0.25em] font-light">
+          <RotateCcw size={16} className="transition-transform group-active:rotate-[-180deg] duration-1000 opacity-60" />
+          <span className="text-[9px] uppercase tracking-[0.3em] font-light italic">
             RESET DATA
           </span>
         </button>
