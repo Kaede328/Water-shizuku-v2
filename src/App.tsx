@@ -237,83 +237,45 @@ export default function App() {
             <AnimatePresence>
               {showCelebrate && (
                 <>
-                  {/* 1. 【特別：目標達成時】完全不透明な全画面祝福（後ろを隠す） */}
+                  {/* 1. 【特別：目標達成時】完全不透明背景 ＋ 英文1行のみ（既定の仕様） */}
                   {celebrateType === 'special' && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      /* ★背景を完全に不透明（不透明度100%）にして後ろを隠す */
-                      className={`fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-center transition-colors duration-[1000ms] ${
+                      className={`fixed inset-0 z-[200] pointer-events-none flex items-center justify-center transition-colors duration-[1500ms] ${
                         isDarkMode ? 'bg-slate-950' : 'bg-white'
                       }`}
                     >
-                      {/* ★背景を彩る、澄んだ虹色のオーロラ（後ろが隠れたので薄めでOK） */}
                       <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ 
-                          opacity: [0, 0.6, 0], // 不透明度を調整
-                        }}
-                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-0 bg-gradient-to-tr from-blue-100/40 via-purple-100/40 to-pink-100/40 blur-[100px]"
-                      />
-                      
-                      {/* ★画面中央に大きく表示されるテキスト（後ろと被らないので大きく） */}
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="flex flex-col items-center justify-center text-center px-8 relative z-10"
+                        initial={{ opacity: 0, letterSpacing: "0.2em" }}
+                        animate={{ opacity: 1, letterSpacing: "0.8em" }}
+                        transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
+                        className="w-full text-center relative z-10"
                       >
-                        <motion.div
-                          animate={{ y: [-5, 5, -5], opacity: [0.8, 1, 0.8] }}
-                          transition={{ duration: 4, repeat: Infinity }}
-                        >
-                          <Sparkles 
-                            className={`mb-8 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'} w-16 h-16`} 
-                          />
-                        </motion.div>
-                        
-                        {/* ★さらに大きく、ハッキリとした虹色のテキスト */}
-                        <span className={`font-extralight tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 drop-shadow-lg text-6xl`}>
-                          祝福の雫
-                        </span>
-                        
-                        <motion.span 
-                          initial={{ opacity: 0 }} 
-                          animate={{ opacity: 0.8 }} 
-                          transition={{ delay: 1.0 }}
-                          className={`text-[11px] mt-8 tracking-[0.6em] uppercase font-light ${isDarkMode ? 'text-blue-100' : 'text-sky-800'}`}
-                        >
+                        <span className={`inline-block w-full text-[11px] font-extralight uppercase tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300`}>
                           Your body is deeply hydrated
-                        </motion.span>
+                        </span>
                       </motion.div>
                     </motion.div>
                   )}
 
-                  {/* 2. 【通常：1000mlごと】クリスタルの中心に浮かぶ祝福（これまで通り） */}
+                  {/* 2. 【通常：1000mlごと】クリスタルの中心に、完璧な中心揃えで表示 */}
                   {celebrateType === 'normal' && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center pointer-events-none">
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 1.1 }}
                         className="flex flex-col items-center justify-center text-center px-4"
                       >
-                        <motion.div
-                          animate={{ y: [-3, 3, -3], opacity: [0.7, 1, 0.7] }}
-                          transition={{ duration: 3, repeat: Infinity }}
-                        >
-                          <Sparkles 
-                            className={`mb-3 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'} w-5 h-5`} 
-                          />
-                        </motion.div>
-                        
-                        <span className={`font-extralight tracking-[0.6em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 drop-shadow-sm text-xl`}>
+                        {/* 日本語：中心揃え */}
+                        <span className={`font-extralight tracking-[0.6em] text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 drop-shadow-sm text-xl mb-3`}>
                           祝福の雫
                         </span>
                         
-                        <span className={`text-[8px] mt-4 tracking-[0.4em] uppercase font-light ${
+                        {/* 英語サブテキスト：中心揃え */}
+                        <span className={`text-[8px] tracking-[0.4em] uppercase font-light leading-none ${
                           isDarkMode ? 'text-blue-100/60' : 'text-sky-700/70'
                         }`}>
                           Blessing of Water
