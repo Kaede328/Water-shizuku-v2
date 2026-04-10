@@ -72,16 +72,21 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
+  // ★ 1000mlごとに祝福し、飲みすぎ（1000ml同時）をチェックするロジック
   const addWater = (amount: number) => {
-    checkOverhydration(amount); // ここでメッセージを予約します
+    checkOverhydration(amount);
     const newTotal = totalToday + amount;
-    setHistory(prev => [totalToday, ...prev]);
-    setRecordTimes(prev => [Date.now(), ...prev]);
     
-    if (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal) {
+    // 1000mlの境界線を越えたか判定（1000, 2000...）
+    const crossedThousand = Math.floor(newTotal / 1000) > Math.floor(totalToday / 1000);
+    
+    if (crossedThousand || (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal)) {
       setShowCelebrate(true);
       setTimeout(() => setShowCelebrate(false), 4000);
     }
+
+    setHistory(prev => [totalToday, ...prev]);
+    setRecordTimes(prev => [Date.now(), ...prev]);
     setTotalToday(newTotal);
   };
 
@@ -199,26 +204,26 @@ export default function App() {
             <AnimatePresence>
               {showCelebrate ? (
                 <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }} 
+                  initial={{ scale: 0.95, opacity: 0 }} 
                   animate={{ scale: 1, opacity: 1 }} 
-                  exit={{ scale: 1.1, opacity: 0 }} 
-                  className="flex flex-col items-center"
+                  exit={{ scale: 1.05, opacity: 0 }} 
+                  className="flex flex-col items-center bg-transparent shadow-none border-none" // 背景や枠を完全に排除
                 >
-                  <Sparkles className={`w-6 h-6 mb-3 animate-pulse transition-colors duration-1000 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'}`} />
-                  <div className="flex justify-center items-center">
-                    <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
-                      isDarkMode 
-                      ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-                      : 'text-sky-900 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
-                    }`}>
-                      祝福の雫
-                    </span>
-                  </div>
+                  <Sparkles className={`w-5 h-5 mb-4 animate-pulse ${isDarkMode ? 'text-blue-100' : 'text-sky-300'}`} />
+                  
+                  <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
+                    isDarkMode 
+                    ? 'text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]' 
+                    : 'text-sky-900 drop-shadow-[0_0_10px_rgba(255,255,255,1)]'
+                  }`}>
+                    祝福の雫
+                  </span>
+                  
                   <motion.span 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    transition={{ delay: 0.5 }}
-                    className={`text-[8px] mt-2 tracking-[0.2em] uppercase font-medium ${isDarkMode ? 'text-blue-200/60' : 'text-sky-400/60'}`}
+                    initial={{ opacity: 0, y: 5 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: 0.4 }}
+                    className={`text-[7px] mt-3 tracking-[0.3em] uppercase font-light ${isDarkMode ? 'text-blue-200/40' : 'text-sky-400/50'}`}
                   >
                     Blessing of water
                   </motion.span>
