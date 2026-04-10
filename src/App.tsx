@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Fingerprint } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
-const STORAGE_KEY = 'water-shizuku-v6-final-check';
+const STORAGE_KEY = 'water-shizuku-v7-final-check'; // バージョンを上げて初期値を強制適用
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
@@ -44,7 +44,13 @@ export default function App() {
       setTotalToday(parsed.totalToday || 0);
       setHistory(parsed.history || []);
       setWeeklyHistory(parsed.weeklyHistory || []);
-      if (parsed.settings) setSettings(parsed.settings);
+      // 保存データがある場合も dailyGoal が未設定なら 2500 を適用
+      if (parsed.settings) {
+        setSettings({
+          ...parsed.settings,
+          dailyGoal: parsed.settings.dailyGoal || 2500 
+        });
+      }
     }
   }, []);
 
@@ -52,42 +58,39 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, settings }));
   }, [totalToday, history, weeklyHistory, settings]);
 
+  // ★ 2. iPhone 14 / Safari で最も反応しやすい触覚ロジック
   const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
     if (settings.hapticIntensity === 0) return;
     
-    // iOS Safari等では navigator.vibrate が存在しない、または制限されている場合があります
     if (typeof window !== 'undefined' && navigator.vibrate) {
       const isSoft = settings.hapticIntensity === 2;
       
-      // iPhone 14 等のブラウザでも認識されやすいミリ秒設定
-      if (type === 'light') {
-        // 非常に短いとiOSで無視されるため、最低15ms確保
-        navigator.vibrate(isSoft ? 15 : 25);
-      } else if (type === 'medium') {
-        navigator.vibrate(isSoft ? 30 : 50);
-      } else if (type === 'success') {
-        // 成功時は「トン、トン」と2回。間隔を少し開けて認識率を上げます
-        navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
+      // iOSは短すぎると無視され、長すぎると「普通の着信音」になるため調整
+      try {
+        if (type === 'light') {
+          navigator.vibrate(isSoft ? 10 : 20);
+        } else if (type === 'medium') {
+          navigator.vibrate(isSoft ? 25 : 45);
+        } else if (type === 'success') {
+          // 2回のリズム。iOSで「トントン」と認識されやすい間隔
+          navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
+        }
+      } catch (e) {
+        console.error("Haptic error:", e);
       }
-      
-      // ログを出力して動作を確認（開発ツールで見ることができます）
-      console.log(`Haptic Triggered: ${type}`);
     }
   };
 
-  // ★即時テスト通知ボタン用（タイトルを究極にシンプルに修正）
-  const sendTestNotification = async () => {
+  // ★ 3. タイトルから「From しずく」を完全に削除
+  const sendNewNotification = async () => {
     triggerHaptic('light');
-    if (!("Notification" in window)) {
-      alert("このブラウザは通知に対応していません");
-      return;
-    }
+    if (!("Notification" in window)) return;
+    
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      // タイトルを「水神の雫」のみに変更
-      new Notification("水神の雫", {
+      new Notification("水神の雫", { // タイトルはこれだけ
         body: "ひと口お水を飲んでリフレッシュしませんか？✨",
-        icon: "/pwa-192x192.png" // アイコンのパスは環境に合わせて調整してくださいね
+        icon: "/pwa-192x192.png"
       });
     }
   };
@@ -177,7 +180,7 @@ export default function App() {
         </div>
         <div className="flex gap-2">
           {/* ★テスト通知ボタン */}
-          <button onClick={sendTestNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
+          <button onClick={sendNewNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
           <button onClick={() => { triggerHaptic('light'); setShowStats(!showStats); }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><BarChart2 className="w-4 h-4" /></button>
         </div>
       </header>
