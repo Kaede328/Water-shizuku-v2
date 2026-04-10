@@ -55,13 +55,16 @@ export default function App() {
       setTotalToday(parsed.totalToday || 0);
       setHistory(parsed.history || []);
       setWeeklyHistory(parsed.weeklyHistory || []);
+      // ★ここを追加：飲んだ時間の履歴も復元
+      setRecordTimes(parsed.recordTimes || []); 
       if (parsed.settings) setSettings(parsed.settings);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, settings }));
-  }, [totalToday, history, weeklyHistory, settings]);
+    // ★recordTimes も保存対象に加える
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, recordTimes, settings }));
+  }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
   useEffect(() => {
     const checkTime = () => {
@@ -79,19 +82,22 @@ export default function App() {
     if (!settings.notificationsEnabled) return;
 
     const checkHydration = () => {
-      // 最後に飲んだ時間（記録がない場合は現在時刻を起点にする）
-      const lastDrink = recordTimes[0] || Date.now();
+      // 最後に飲んだ時間を取得（なければ今の時間を基準に）
+      const lastDrink = recordTimes.length > 0 ? recordTimes[0] : Date.now();
       const oneHour = 60 * 60 * 1000;
       const now = Date.now();
 
-      // 1時間以上経過しており、かつその1時間の間でまだ通知を送っていない場合
-      if (now - lastDrink >= oneHour && (!lastNotificationTime || lastNotificationTime < lastDrink)) {
-        sendFinalNotification();
-        setLastNotificationTime(now); // 送信済みとして記録
+      // 1時間以上経っている、かつ、その後にまだ通知を出していない場合
+      if (now - lastDrink >= oneHour) {
+        if (!lastNotificationTime || lastNotificationTime < lastDrink) {
+          sendFinalNotification();
+          setLastNotificationTime(now);
+        }
       }
     };
 
-    // 1分ごとに状況を確認
+    // 起動時に一度チェックし、その後1分ごとに見守る
+    checkHydration(); 
     const hydrationTimer = setInterval(checkHydration, 60000);
     return () => clearInterval(hydrationTimer);
   }, [recordTimes, lastNotificationTime, settings.notificationsEnabled]);
@@ -309,12 +315,28 @@ export default function App() {
               <p className={`text-[10px] font-bold mb-4 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
               <div className="h-32 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
+                  <BarChart 
+                    data={chartData} 
+                    margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                    /* ★棒が太くなりすぎないように調整 */
+                    barCategoryGap="40%"
+                  >
                     <XAxis dataKey="date" hide />
                     <YAxis hide domain={[0, settings.dailyGoal]} />
-                    <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                    <Bar 
+                      dataKey="amount" 
+                      radius={[4, 4, 0, 0]} 
+                      maxBarSize={8} // ★ここで1本の太さを細く固定します
+                    >
                       {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.amount >= settings.dailyGoal ? (isDarkMode ? '#818cf8' : '#38bdf8') : (isDarkMode ? '#312e81' : '#bae6fd')} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          /* 達成した日は輝く青、それ以外はごく淡い色に */
+                          fill={entry.amount >= settings.dailyGoal 
+                            ? (isDarkMode ? '#818cf8' : '#38bdf8') 
+                            : (isDarkMode ? 'rgba(129, 140, 248, 0.15)' : 'rgba(186, 230, 253, 0.3)')
+                          } 
+                        />
                       ))}
                     </Bar>
                   </BarChart>
