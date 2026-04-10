@@ -1,17 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Fingerprint } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
-// キーを変更して古いキャッシュを完全に切り離します
-const STORAGE_KEY = 'water-shizuku-v8-final-resort';
+const STORAGE_KEY = 'water-shizuku-v9-pure';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
   const [recordTimes, setRecordTimes] = useState<number[]>([]);
   const [weeklyHistory, setWeeklyHistory] = useState<{date: string, amount: number}[]>([]);
-  
   const [showConfirm, setShowConfirm] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -20,49 +18,19 @@ export default function App() {
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
 
   const [settings, setSettings] = useState({
-    hapticIntensity: 1,
     notificationsEnabled: true,
     dailyGoal: 2500,
     forceNightMode: false 
   });
 
-  // ★ 1. 触覚フィードバック：iOS Safari での認識率を最大化する最終ロジック
-  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success') => {
-    if (settings.hapticIntensity === 0) return;
-    
-    // navigator.vibrate が存在するかチェック
-    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-      try {
-        // iPhoneが「着信」ではなく「操作フィードバック」として認識しやすいミリ秒
-        // iOSでは配列形式よりも単発の指定が通りやすいため、successも単発に調整
-        if (type === 'light') {
-          window.navigator.vibrate(25);
-        } else if (type === 'medium') {
-          window.navigator.vibrate(55);
-        } else if (type === 'success') {
-          // iOSで確実に動かすため、あえて100msの単発に
-          window.navigator.vibrate(100);
-        }
-        console.log("Vibrate success:", type);
-      } catch (e) {
-        console.log("Vibrate blocked");
-      }
-    }
-  }, [settings.hapticIntensity]);
-
-  // ★ 2. 通知：タイトルを「水神の雫」に戻し、通知欄をスッキリさせる
+  // 通知機能：タイトル「水神の雫」を維持し、内容をシンプルに
   const sendFinalNotification = async () => {
-    // 振動命令を通知の直前に実行
-    triggerHaptic('medium');
-
     if (!("Notification" in window)) return;
-
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       new Notification("水神の雫", { 
         body: "ひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png",
-        // tagを固定することで、通知が重ならずに入れ替わります
         tag: "shizuku-daily-alert"
       });
     }
@@ -75,9 +43,7 @@ export default function App() {
       setTotalToday(parsed.totalToday || 0);
       setHistory(parsed.history || []);
       setWeeklyHistory(parsed.weeklyHistory || []);
-      if (parsed.settings) {
-        setSettings({ ...parsed.settings, dailyGoal: parsed.settings.dailyGoal || 2500 });
-      }
+      if (parsed.settings) setSettings(parsed.settings);
     }
   }, []);
 
@@ -96,35 +62,19 @@ export default function App() {
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
 
-  const checkOverhydration = (newAmount: number) => {
-    const now = Date.now();
-    const oneHourAgo = now - 3600000;
-    const recentTotal = recordTimes.filter(t => t > oneHourAgo).length * 250 + newAmount;
-    if (recentTotal >= 1000) {
-      setOverhydrationMsg("楓さん、ゆっくり、ひと口ずつ。\nその方が体に染み渡りますよ 🌙");
-      setTimeout(() => setOverhydrationMsg(null), 5000);
-    }
-  };
-
   const addWater = (amount: number) => {
-    triggerHaptic('medium');
-    checkOverhydration(amount);
     const newTotal = totalToday + amount;
     setHistory(prev => [totalToday, ...prev]);
     setRecordTimes(prev => [Date.now(), ...prev]);
     
-    const milestones = [1000, 2000, 2500];
-    const reachedMilestone = milestones.find(m => totalToday < m && newTotal >= m);
-    if (reachedMilestone || (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal)) {
+    if (totalToday < settings.dailyGoal && newTotal >= settings.dailyGoal) {
       setShowCelebrate(true);
-      triggerHaptic('success');
       setTimeout(() => setShowCelebrate(false), 4000);
     }
     setTotalToday(newTotal);
   };
 
   const finalReset = () => {
-    triggerHaptic('medium');
     const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
     setWeeklyHistory(prev => {
       const existingIndex = prev.findIndex(item => item.date === todayStr);
@@ -170,18 +120,18 @@ export default function App() {
 
       <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
         <div className="flex gap-2">
-          <button onClick={() => { triggerHaptic('light'); setShowSettings(true); }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-400'}`}><Settings className="w-4 h-4" /></button>
-          <button onClick={() => { triggerHaptic('medium'); setSettings({...settings, forceNightMode: !settings.forceNightMode}); }} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-yellow-200' : 'text-indigo-400'}`}>
+          <button onClick={() => setShowSettings(true)} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-400'}`}><Settings className="w-4 h-4" /></button>
+          <button onClick={() => setSettings({...settings, forceNightMode: !settings.forceNightMode})} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-yellow-200' : 'text-indigo-400'}`}>
             {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
-        <div className="text-center cursor-pointer" onClick={() => { triggerHaptic('light'); setShowConfirm(true); }}>
+        <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
           <h1 className={`text-xl font-light tracking-widest mb-0.5 transition-colors ${isDarkMode ? 'text-white' : 'text-sky-900'}`}>水神の雫</h1>
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
         <div className="flex gap-2">
           <button onClick={sendFinalNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
-          <button onClick={() => { triggerHaptic('light'); setShowStats(!showStats); }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><BarChart2 className="w-4 h-4" /></button>
+          <button onClick={() => setShowStats(!showStats)} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><BarChart2 className="w-4 h-4" /></button>
         </div>
       </header>
 
@@ -277,7 +227,7 @@ export default function App() {
               </div>
             ))}
           </div>
-          <button onClick={() => { triggerHaptic('light'); if (history.length > 0) { const [last, ...rem] = history; setTotalToday(last); setHistory(rem); } }} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') : 'text-slate-300/30'}`}><Undo className="w-4 h-4" /></button>
+          <button onClick={() => { if (history.length > 0) { const [last, ...rem] = history; setTotalToday(last); setHistory(rem); } }} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') : 'text-slate-300/30'}`}><Undo className="w-4 h-4" /></button>
         </div>
         
         <AnimatePresence>
@@ -307,7 +257,7 @@ export default function App() {
           <button onClick={() => addWater(250)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">250ml</span></button>
           <button onClick={() => addWater(500)} className={`py-4 rounded-2xl border backdrop-blur-sm shadow-sm flex flex-col items-center active:scale-[0.96] transition-all ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white/60 border-white/50 text-sky-900'}`}><Plus size={20} className={isDarkMode ? 'text-indigo-400' : 'text-sky-400'} /><span className="text-sm font-medium">500ml</span></button>
         </div>
-        <button onClick={() => { triggerHaptic('light'); setShowConfirm(true); }} className={`w-full py-4 rounded-2xl bg-white/10 flex items-center justify-center gap-2 border border-white/5 active:bg-white/20 transition-all ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
+        <button onClick={() => setShowConfirm(true)} className={`w-full py-4 rounded-2xl bg-white/10 flex items-center justify-center gap-2 border border-white/5 active:bg-white/20 transition-all ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}><RotateCcw size={16} /><span className="text-xs uppercase tracking-widest font-light">Reset Data</span></button>
       </div>
 
       <AnimatePresence>
@@ -320,23 +270,6 @@ export default function App() {
               </div>
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Haptic Test</label>
-                  <button onClick={() => triggerHaptic('medium')} className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 border transition-all active:scale-[0.98] ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-sky-50 border-sky-100 text-sky-600'}`}>
-                    <Fingerprint size={18} />
-                    <span className="text-sm font-bold">Test Vibration</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Intensity Level</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['OFF', 'Normal', 'Soft'].map((label, i) => (
-                      <button key={i} onClick={() => { setSettings({...settings, hapticIntensity: i}); setTimeout(() => triggerHaptic('light'), 50); }} className={`py-3 rounded-xl text-xs font-medium transition-all ${settings.hapticIntensity === i ? 'bg-sky-500 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 opacity-60'}`}>{label}</button>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Daily Goal: {settings.dailyGoal}ml</label>
                   <input type="range" min="1000" max="4000" step="250" value={settings.dailyGoal} onChange={(e) => setSettings({...settings, dailyGoal: parseInt(e.target.value)})} className="w-full accent-sky-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
