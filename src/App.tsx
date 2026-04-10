@@ -26,44 +26,44 @@ export default function App() {
     forceNightMode: false 
   });
 
-  // ★ 触覚フィードバック（iPhone 14 / iOS17以降 向け最終調整）
+  // ★ 1. 触覚フィードバック：iOS Safari での認識率を最大化する最終ロジック
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success') => {
     if (settings.hapticIntensity === 0) return;
     
-    if (typeof window !== 'undefined' && navigator.vibrate) {
-      const isSoft = settings.hapticIntensity === 2;
+    // navigator.vibrate が存在するかチェック
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
       try {
-        // iPhoneはあまりに短い振動（10ms等）を無視するため、
-        // 「しっかり認識されるが、感触としては繊細」な長さに固定します。
+        // iPhoneが「着信」ではなく「操作フィードバック」として認識しやすいミリ秒
+        // iOSでは配列形式よりも単発の指定が通りやすいため、successも単発に調整
         if (type === 'light') {
-          navigator.vibrate(20); 
+          window.navigator.vibrate(25);
         } else if (type === 'medium') {
-          navigator.vibrate(50);
+          window.navigator.vibrate(55);
         } else if (type === 'success') {
-          // iOSが「タタッ」と小気味よく反応するリズム
-          navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
+          // iOSで確実に動かすため、あえて100msの単発に
+          window.navigator.vibrate(100);
         }
+        console.log("Vibrate success:", type);
       } catch (e) {
-        // エラー時は何もしない
+        console.log("Vibrate blocked");
       }
     }
   }, [settings.hapticIntensity]);
 
+  // ★ 2. 通知：タイトルを「水神の雫」に戻し、通知欄をスッキリさせる
   const sendFinalNotification = async () => {
+    // 振動命令を通知の直前に実行
     triggerHaptic('medium');
+
     if (!("Notification" in window)) return;
 
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      // ★ iPhoneの「from」表示を回避するためのハック
-      // タイトルに「目に見えない特殊な空白（\u200B）」を複数入れ、
-      // iPhoneにアプリ名を自動付与する隙を与えないようにします。
-      new Notification("\u200B", { 
+      new Notification("水神の雫", { 
         body: "ひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png",
-        tag: "shizuku-" + Date.now(),
-        // iOS向けにsilent属性をあえてfalseに指定してみます
-        silent: false 
+        // tagを固定することで、通知が重ならずに入れ替わります
+        tag: "shizuku-daily-alert"
       });
     }
   };
