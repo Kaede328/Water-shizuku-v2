@@ -55,19 +55,23 @@ export default function App() {
   const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
     if (settings.hapticIntensity === 0) return;
     
-    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-      // 強さの設定に合わせて時間を調整（Softでも消えないように底上げ）
+    // iOS Safari等では navigator.vibrate が存在しない、または制限されている場合があります
+    if (typeof window !== 'undefined' && navigator.vibrate) {
       const isSoft = settings.hapticIntensity === 2;
       
+      // iPhone 14 等のブラウザでも認識されやすいミリ秒設定
       if (type === 'light') {
-        window.navigator.vibrate(isSoft ? 8 : 15);
+        // 非常に短いとiOSで無視されるため、最低15ms確保
+        navigator.vibrate(isSoft ? 15 : 25);
       } else if (type === 'medium') {
-        window.navigator.vibrate(isSoft ? 20 : 40);
+        navigator.vibrate(isSoft ? 30 : 50);
       } else if (type === 'success') {
-        // 成功時はトントンと2回
-        window.navigator.vibrate(isSoft ? [30, 50, 30] : [50, 80, 50]);
+        // 成功時は「トン、トン」と2回。間隔を少し開けて認識率を上げます
+        navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
       }
-      console.log(`Haptic: ${type} (${isSoft ? 'Soft' : 'Normal'})`);
+      
+      // ログを出力して動作を確認（開発ツールで見ることができます）
+      console.log(`Haptic Triggered: ${type}`);
     }
   };
 
