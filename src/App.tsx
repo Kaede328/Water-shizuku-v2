@@ -66,6 +66,13 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, recordTimes, settings }));
   }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
+  // 起動時に通知許可を求める
+  useEffect(() => {
+    if (settings.notificationsEnabled && "Notification" in window) {
+      Notification.requestPermission();
+    }
+  }, [settings.notificationsEnabled]);
+
   // 1. シンプルなモード決定ロジック
   useEffect(() => {
     // settings.forceNightMode が true ならダーク、false ならライト
@@ -80,23 +87,25 @@ export default function App() {
     const checkScheduledNotification = () => {
       const now = new Date();
       const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-
+      
       // 朝8時〜夜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // 0分のタイミング（または0分にアプリを開いた時）
-        if (currentMinute === 0) {
-          const lastSentHour = lastNotificationTime ? new Date(lastNotificationTime).getHours() : -1;
-          if (lastSentHour !== currentHour) {
-            sendFinalNotification();
-            setLastNotificationTime(now.getTime());
-          }
+        // 最後に送った「時間（hour）」をチェック
+        const lastSentHour = lastNotificationTime ? new Date(lastNotificationTime).getHours() : -1;
+        
+        // 今の時間の通知がまだ送られていないなら実行
+        if (lastSentHour !== currentHour) {
+          sendFinalNotification();
+          setLastNotificationTime(now.getTime());
         }
       }
     };
 
-    checkScheduledNotification(); // 起動時に即チェック
-    const timer = setInterval(checkScheduledNotification, 30000); // 精度を上げるため30秒ごとにチェック
+    // アプリ起動時（バックグラウンドからの復帰時）に即実行
+    checkScheduledNotification();
+
+    // 1分ごとに見守り
+    const timer = setInterval(checkScheduledNotification, 60000);
     return () => clearInterval(timer);
   }, [lastNotificationTime, settings.notificationsEnabled]);
 
