@@ -23,22 +23,23 @@ export default function App() {
     forceNightMode: false 
   });
 
-  // ★ 通知：楓さんの望む「From しずく」の形に
+  // ★ 通知：iPhoneの自動付与(from しずく)と繋がって1行に見えるように
   const sendFinalNotification = async () => {
     if (!("Notification" in window)) return;
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       new Notification("水神の雫", { 
-        body: "From しずく\nひと口お水を飲んでリフレッシュしませんか？✨",
+        // 本文から「From しずく」を消し、iPhoneの自動付与に任せます
+        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png",
         tag: "shizuku-daily-alert"
       });
     }
   };
 
-  // ★ 過剰摂取チェック：一度に飲みすぎた時の優しいアドバイス
+  // ★ 過剰摂取チェック：1000ml以上の時だけ優しく声をかける
   const checkOverhydration = (amount: number) => {
-    if (amount >= 500) {
+    if (amount >= 1000) {
       setOverhydrationMsg("一度にたくさん飲むよりも、\n少しずつ、ゆっくり飲みましょうね。");
       setTimeout(() => setOverhydrationMsg(null), 6000);
     }
