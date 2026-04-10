@@ -320,7 +320,7 @@ export default function App() {
         
         <AnimatePresence>
           {showStats && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}>
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border mb-12 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}>
               <p className={`text-[10px] font-bold mb-4 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
               <div className="h-32 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -363,7 +363,7 @@ export default function App() {
       </div>
 
       {/* ★ 250ml & 500ml：氷のような透明感のあるボタン */}
-      <div className="flex gap-4 mb-8 z-20">
+      <div className="flex gap-4 mb-4 z-20 mt-4">
         {[250, 500].map((amount) => (
           <button
             key={amount}
