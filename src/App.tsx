@@ -243,28 +243,25 @@ export default function App() {
             <AnimatePresence>
               {showCelebrate && (
                 <>
-                  {/* 1. 【特別：目標達成時】完全不透明背景 ＋ 英文1行のみ（中央配置・横断） */}
+                  {/* 1. 【特別：目標達成時】完全不透明背景 ＋ 英文1行のみ（最終・天空配置） */}
                   {celebrateType === 'special' && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      /* 完全不透明な背景（後ろを隠す） */
-                      className={`fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-center transition-colors duration-[1500ms] ${
+                      className={`fixed inset-0 z-[200] pointer-events-none flex flex-col items-center justify-start transition-colors duration-[1500ms] ${
                         isDarkMode ? 'bg-slate-950' : 'bg-white'
                       }`}
+                      /* ★さらに少しだけ上に（8rem）移動させました */
+                      style={{ paddingTop: '8rem' }} 
                     >
-                      {/* ★画面中央（クリスタルの中心）を横切る静寂のテキスト */}
                       <motion.div
-                        initial={{ opacity: 0, letterSpacing: "0.2em" }}
-                        animate={{ opacity: 1, letterSpacing: "0.8em" }}
+                        initial={{ opacity: 0, y: 5, letterSpacing: "0.2em" }} 
+                        animate={{ opacity: 1, y: 0, letterSpacing: "0.8em" }}
                         transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
-                        /* w-full で画面を横断するレイアウトを維持 */
-                        className="w-full text-center relative z-10"
+                        className="w-full text-center relative z-10 px-6"
                       >
-                        {/* ★極小・1行・中央配置・横断 */}
                         <span className={`inline-block w-full text-[11px] font-extralight uppercase tracking-[0.8em] text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300`}>
-                          {/* テキストの内容 */}
                           Your body is deeply hydrated
                         </span>
                       </motion.div>
