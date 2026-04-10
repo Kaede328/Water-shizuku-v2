@@ -26,45 +26,44 @@ export default function App() {
     forceNightMode: false 
   });
 
-  // ★ iPhone 用の触覚フィードバック強化版
+  // ★ 触覚フィードバック（iPhone 14 / iOS17以降 向け最終調整）
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success') => {
     if (settings.hapticIntensity === 0) return;
     
-    // iPhone (iOS) の Safari では navigator.vibrate がサポートされていない場合があります
-    // そのため、通常の振動命令に加え、ログを出して動作を確認します
-    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+    if (typeof window !== 'undefined' && navigator.vibrate) {
       const isSoft = settings.hapticIntensity === 2;
       try {
+        // iPhoneはあまりに短い振動（10ms等）を無視するため、
+        // 「しっかり認識されるが、感触としては繊細」な長さに固定します。
         if (type === 'light') {
-          window.navigator.vibrate(isSoft ? 15 : 30);
+          navigator.vibrate(20); 
         } else if (type === 'medium') {
-          window.navigator.vibrate(isSoft ? 30 : 60);
+          navigator.vibrate(50);
         } else if (type === 'success') {
-          // 成功時は「トン、トン」と2回。間隔を少し開けて認識率を上げます
-          window.navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
+          // iOSが「タタッ」と小気味よく反応するリズム
+          navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
         }
       } catch (e) {
-        console.log("Haptic limited by browser settings", e);
+        // エラー時は何もしない
       }
     }
   }, [settings.hapticIntensity]);
 
-  // ★ 通知から「From しずく」を消し去るための新ロジック
   const sendFinalNotification = async () => {
     triggerHaptic('medium');
-    if (!("Notification" in window)) {
-      alert("この端末は通知に対応していません");
-      return;
-    }
+    if (!("Notification" in window)) return;
 
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      // 古いキャッシュを回避するため、タイトルを「 」（半角スペース）にし、
-      // 本文の最初にアプリ名を入れることで、OSの強制表示を上書きします。
-      new Notification(" ", { 
-        body: "【水神の雫】\nひと口お水を飲んでリフレッシュしませんか？✨",
+      // ★ iPhoneの「from」表示を回避するためのハック
+      // タイトルに「目に見えない特殊な空白（\u200B）」を複数入れ、
+      // iPhoneにアプリ名を自動付与する隙を与えないようにします。
+      new Notification("\u200B", { 
+        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png",
-        tag: "shizuku-alert-" + Date.now() // 毎回新しい通知として扱う
+        tag: "shizuku-" + Date.now(),
+        // iOS向けにsilent属性をあえてfalseに指定してみます
+        silent: false 
       });
     }
   };
