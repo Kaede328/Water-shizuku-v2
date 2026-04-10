@@ -178,10 +178,35 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-center">
-          <p className={`text-[10px] uppercase tracking-widest font-bold ${isDarkMode ? 'text-indigo-400' : 'text-sky-400'}`}>Total Today</p>
-          <p className={`text-4xl font-light ${isDarkMode ? 'text-white' : 'text-sky-900'}`}>{totalToday}<span className="text-sm ml-1">ml</span></p>
+      <div className="flex flex-col items-center gap-6">
+        <div className="text-center w-full max-w-[200px]">
+          {/* ★目標と現在の進捗を分かりやすく統合 */}
+          <p className={`text-[10px] uppercase tracking-[0.2em] font-bold mb-1 ${isDarkMode ? 'text-indigo-400' : 'text-sky-400'}`}>
+            Hydration Progress
+          </p>
+          
+          <div className="flex items-baseline justify-center gap-1 mb-2">
+            <span className={`text-4xl font-light ${isDarkMode ? 'text-white' : 'text-sky-900'}`}>
+              {totalToday}
+            </span>
+            <span className={`text-sm font-extralight opacity-60 ${isDarkMode ? 'text-indigo-200' : 'text-sky-800'}`}>
+              / {settings.dailyGoal}ml
+            </span>
+          </div>
+
+          {/* ★繊細な進捗バー */}
+          <div className={`w-full h-[2px] rounded-full overflow-hidden mb-1 ${isDarkMode ? 'bg-white/5' : 'bg-sky-100'}`}>
+            <motion.div 
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min((totalToday / settings.dailyGoal) * 100, 100)}%` }}
+              className={`h-full transition-all duration-1000 ${isDarkMode ? 'bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.5)]' : 'bg-sky-400'}`}
+            />
+          </div>
+
+          {/* ★達成率のラベル */}
+          <p className={`text-[9px] font-medium tracking-widest ${isDarkMode ? 'text-indigo-300/60' : 'text-sky-400'}`}>
+            {Math.round((totalToday / settings.dailyGoal) * 100)}% ACHIEVED
+          </p>
         </div>
 
         <div className="relative w-52 h-52 flex-shrink-0">
@@ -204,24 +229,26 @@ export default function App() {
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
             <AnimatePresence>
               {showCelebrate ? (
+                // ★文字全体を囲むコンポーネントの背景色・境界線を削除
                 <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }} 
                   animate={{ scale: 1, opacity: 1 }} 
                   exit={{ scale: 1.1, opacity: 0 }} 
-                  className="flex flex-col items-center"
+                  className="flex flex-col items-center" // 背景色やborderのクラスを削除
                 >
-                  <Sparkles className={`w-6 h-6 mb-3 animate-pulse transition-colors duration-1000 ${isDarkMode ? 'text-blue-100' : 'text-sky-400'}`} />
+                  <Sparkles className={`w-6 h-6 mb-3 animate-pulse transition-colors duration-1000 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'}`} />
                   
-                  {/* ★文字を細く、間隔を広く、繊細な印象に修正 */}
-                  <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
-                    isDarkMode 
-                    ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-                    : 'text-sky-900 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
-                  }`}>
-                    祝福の雫
-                  </span>
+                  {/* ★文字自体を囲むコンポーネントも背景色・境界線を削除 */}
+                  <div className="flex justify-center items-center">
+                    <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
+                      isDarkMode 
+                      ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
+                      : 'text-sky-900 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+                    }`}>
+                      祝福の雫
+                    </span>
+                  </div>
                   
-                  {/* サブテキストを添えて、より物語のような雰囲気に */}
                   <motion.span 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
