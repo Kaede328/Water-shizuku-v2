@@ -176,12 +176,16 @@ export default function App() {
         </div>
 
         <div className="relative w-52 h-52 flex-shrink-0">
-          {/* ★祝福の瞬間、球体の縁が虹色に光る演出 */}
+          {/* ★祝福の瞬間、球体がより鮮やかに、より明るく発光する演出 */}
           <motion.div 
             className={`absolute inset-0 rounded-full border z-40 pointer-events-none transition-all duration-1000 ${
               showCelebrate 
-              ? 'border-transparent shadow-[0_0_30px_rgba(255,255,255,0.8),inset_0_0_20px_rgba(255,255,255,0.5)] bg-gradient-to-tr from-pink-300/20 via-sky-300/20 to-emerald-300/20' 
-              : isDarkMode ? 'border-indigo-500/30 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]' : 'border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]'
+                ? isDarkMode
+                  ? 'border-transparent shadow-[0_0_40px_rgba(255,255,255,0.6),inset_0_0_30px_rgba(255,255,255,0.4)] bg-gradient-to-tr from-pink-400/40 via-sky-300/40 to-emerald-300/40' 
+                  : 'border-transparent shadow-[0_0_25px_rgba(56,189,248,0.5),inset_0_0_15px_rgba(255,255,255,0.6)] bg-gradient-to-tr from-pink-300/30 via-sky-300/30 to-emerald-400/30'
+                : isDarkMode 
+                  ? 'border-indigo-500/30 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]' 
+                  : 'border-sky-200 shadow-[inset_0_0_20px_rgba(186,230,253,0.5)]'
             }`} 
           />
           <div className={`absolute inset-0 rounded-full overflow-hidden z-10 ${isDarkMode ? 'bg-indigo-900/20' : 'bg-sky-50/20'}`}>
@@ -192,9 +196,10 @@ export default function App() {
             <AnimatePresence>
               {showCelebrate ? (
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="flex flex-col items-center">
-                  <Sparkles className="w-8 h-8 mb-2 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                  {/* ★文字はシンプルに白、または濃紺。存在感を出すために太字に */}
-                  <span className={`text-2xl font-black tracking-[0.3em] ${isDarkMode ? 'text-white' : 'text-sky-900'} drop-shadow-md`}>
+                  <Sparkles className={`w-8 h-8 mb-2 animate-pulse ${isDarkMode ? 'text-white' : 'text-sky-400'}`} />
+                  <span className={`text-2xl font-black tracking-[0.3em] ${
+                    isDarkMode ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'text-sky-900 drop-shadow-sm'
+                  }`}>
                     祝福の雫
                   </span>
                 </motion.div>
