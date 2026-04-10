@@ -22,7 +22,7 @@ export default function App() {
     hapticIntensity: 1,
     notificationsEnabled: true,
     celebrationColor: 'rainbow',
-    dailyGoal: 2000,
+    dailyGoal: 2500, // ★デフォルトを 2500ml に変更
     forceNightMode: false 
   });
 
@@ -54,11 +54,20 @@ export default function App() {
 
   const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
     if (settings.hapticIntensity === 0) return;
+    
     if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-      const factor = settings.hapticIntensity === 2 ? 0.5 : 1;
-      if (type === 'light') window.navigator.vibrate(10 * factor);
-      else if (type === 'medium') window.navigator.vibrate(30 * factor);
-      else if (type === 'success') window.navigator.vibrate([20 * factor, 50 * factor, 20 * factor]);
+      // 強さの設定に合わせて時間を調整（Softでも消えないように底上げ）
+      const isSoft = settings.hapticIntensity === 2;
+      
+      if (type === 'light') {
+        window.navigator.vibrate(isSoft ? 8 : 15);
+      } else if (type === 'medium') {
+        window.navigator.vibrate(isSoft ? 20 : 40);
+      } else if (type === 'success') {
+        // 成功時はトントンと2回
+        window.navigator.vibrate(isSoft ? [30, 50, 30] : [50, 80, 50]);
+      }
+      console.log(`Haptic: ${type} (${isSoft ? 'Soft' : 'Normal'})`);
     }
   };
 
@@ -195,13 +204,32 @@ export default function App() {
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
             <AnimatePresence>
               {showCelebrate ? (
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="flex flex-col items-center">
-                  <Sparkles className={`w-8 h-8 mb-2 animate-pulse ${isDarkMode ? 'text-white' : 'text-sky-400'}`} />
-                  <span className={`text-2xl font-black tracking-[0.3em] ${
-                    isDarkMode ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'text-sky-900 drop-shadow-sm'
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  exit={{ scale: 1.1, opacity: 0 }} 
+                  className="flex flex-col items-center"
+                >
+                  <Sparkles className={`w-6 h-6 mb-3 animate-pulse transition-colors duration-1000 ${isDarkMode ? 'text-blue-100' : 'text-sky-400'}`} />
+                  
+                  {/* ★文字を細く、間隔を広く、繊細な印象に修正 */}
+                  <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
+                    isDarkMode 
+                    ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
+                    : 'text-sky-900 shadow-[0_0_8px_rgba(255,255,255,0.8)]'
                   }`}>
                     祝福の雫
                   </span>
+                  
+                  {/* サブテキストを添えて、より物語のような雰囲気に */}
+                  <motion.span 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    transition={{ delay: 0.5 }}
+                    className={`text-[8px] mt-2 tracking-[0.2em] uppercase font-medium ${isDarkMode ? 'text-blue-200/60' : 'text-sky-400/60'}`}
+                  >
+                    Blessing of water
+                  </motion.span>
                 </motion.div>
               ) : (
                 <div className="flex flex-col items-center">
