@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
-const STORAGE_KEY = 'water-shizuku-v9-pure';
+const STORAGE_KEY = 'water-shizuku-v10-final';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
@@ -23,16 +23,24 @@ export default function App() {
     forceNightMode: false 
   });
 
-  // 通知機能：タイトル「水神の雫」を維持し、内容をシンプルに
+  // ★ 通知：楓さんの望む「From しずく」の形に
   const sendFinalNotification = async () => {
     if (!("Notification" in window)) return;
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       new Notification("水神の雫", { 
-        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
+        body: "From しずく\nひと口お水を飲んでリフレッシュしませんか？✨",
         icon: "/pwa-192x192.png",
         tag: "shizuku-daily-alert"
       });
+    }
+  };
+
+  // ★ 過剰摂取チェック：一度に飲みすぎた時の優しいアドバイス
+  const checkOverhydration = (amount: number) => {
+    if (amount >= 500) {
+      setOverhydrationMsg("一度にたくさん飲むよりも、\n少しずつ、ゆっくり飲みましょうね。");
+      setTimeout(() => setOverhydrationMsg(null), 6000);
     }
   };
 
@@ -63,6 +71,7 @@ export default function App() {
   }, [settings.forceNightMode]);
 
   const addWater = (amount: number) => {
+    checkOverhydration(amount); // アドバイスをチェック
     const newTotal = totalToday + amount;
     setHistory(prev => [totalToday, ...prev]);
     setRecordTimes(prev => [Date.now(), ...prev]);
