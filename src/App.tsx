@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Fingerprint } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
-const STORAGE_KEY = 'water-shizuku-v7-final-check'; // バージョンを上げて初期値を強制適用
+// キーを変更して古いキャッシュを完全に切り離します
+const STORAGE_KEY = 'water-shizuku-v8-final-resort';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
@@ -21,10 +22,69 @@ export default function App() {
   const [settings, setSettings] = useState({
     hapticIntensity: 1,
     notificationsEnabled: true,
-    celebrationColor: 'rainbow',
-    dailyGoal: 2500, // ★デフォルトを 2500ml に変更
+    dailyGoal: 2500,
     forceNightMode: false 
   });
+
+  // ★ iPhone 用の触覚フィードバック強化版
+  const triggerHaptic = useCallback((type: 'light' | 'medium' | 'success') => {
+    if (settings.hapticIntensity === 0) return;
+    
+    // iPhone (iOS) の Safari では navigator.vibrate がサポートされていない場合があります
+    // そのため、通常の振動命令に加え、ログを出して動作を確認します
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      const isSoft = settings.hapticIntensity === 2;
+      try {
+        if (type === 'light') {
+          window.navigator.vibrate(isSoft ? 15 : 30);
+        } else if (type === 'medium') {
+          window.navigator.vibrate(isSoft ? 30 : 60);
+        } else if (type === 'success') {
+          // 成功時は「トン、トン」と2回。間隔を少し開けて認識率を上げます
+          window.navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
+        }
+      } catch (e) {
+        console.log("Haptic limited by browser settings", e);
+      }
+    }
+  }, [settings.hapticIntensity]);
+
+  // ★ 通知から「From しずく」を消し去るための新ロジック
+  const sendFinalNotification = async () => {
+    triggerHaptic('medium');
+    if (!("Notification" in window)) {
+      alert("この端末は通知に対応していません");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      // 古いキャッシュを回避するため、タイトルを「 」（半角スペース）にし、
+      // 本文の最初にアプリ名を入れることで、OSの強制表示を上書きします。
+      new Notification(" ", { 
+        body: "【水神の雫】\nひと口お水を飲んでリフレッシュしませんか？✨",
+        icon: "/pwa-192x192.png",
+        tag: "shizuku-alert-" + Date.now() // 毎回新しい通知として扱う
+      });
+    }
+  };
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setTotalToday(parsed.totalToday || 0);
+      setHistory(parsed.history || []);
+      setWeeklyHistory(parsed.weeklyHistory || []);
+      if (parsed.settings) {
+        setSettings({ ...parsed.settings, dailyGoal: parsed.settings.dailyGoal || 2500 });
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, settings }));
+  }, [totalToday, history, weeklyHistory, settings]);
 
   useEffect(() => {
     const checkTime = () => {
@@ -36,64 +96,6 @@ export default function App() {
     const timer = setInterval(checkTime, 60000);
     return () => clearInterval(timer);
   }, [settings.forceNightMode]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setTotalToday(parsed.totalToday || 0);
-      setHistory(parsed.history || []);
-      setWeeklyHistory(parsed.weeklyHistory || []);
-      // 保存データがある場合も dailyGoal が未設定なら 2500 を適用
-      if (parsed.settings) {
-        setSettings({
-          ...parsed.settings,
-          dailyGoal: parsed.settings.dailyGoal || 2500 
-        });
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, settings }));
-  }, [totalToday, history, weeklyHistory, settings]);
-
-  // ★ 2. iPhone 14 / Safari で最も反応しやすい触覚ロジック
-  const triggerHaptic = (type: 'light' | 'medium' | 'success') => {
-    if (settings.hapticIntensity === 0) return;
-    
-    if (typeof window !== 'undefined' && navigator.vibrate) {
-      const isSoft = settings.hapticIntensity === 2;
-      
-      // iOSは短すぎると無視され、長すぎると「普通の着信音」になるため調整
-      try {
-        if (type === 'light') {
-          navigator.vibrate(isSoft ? 10 : 20);
-        } else if (type === 'medium') {
-          navigator.vibrate(isSoft ? 25 : 45);
-        } else if (type === 'success') {
-          // 2回のリズム。iOSで「トントン」と認識されやすい間隔
-          navigator.vibrate(isSoft ? [30, 60, 30] : [50, 100, 50]);
-        }
-      } catch (e) {
-        console.error("Haptic error:", e);
-      }
-    }
-  };
-
-  // ★ 3. タイトルから「From しずく」を完全に削除
-  const sendNewNotification = async () => {
-    triggerHaptic('light');
-    if (!("Notification" in window)) return;
-    
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      new Notification("水神の雫", { // タイトルはこれだけ
-        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
-        icon: "/pwa-192x192.png"
-      });
-    }
-  };
 
   const checkOverhydration = (newAmount: number) => {
     const now = Date.now();
@@ -179,15 +181,13 @@ export default function App() {
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
         <div className="flex gap-2">
-          {/* ★テスト通知ボタン */}
-          <button onClick={sendNewNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
+          <button onClick={sendFinalNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
           <button onClick={() => { triggerHaptic('light'); setShowStats(!showStats); }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><BarChart2 className="w-4 h-4" /></button>
         </div>
       </header>
 
       <div className="flex flex-col items-center gap-6">
         <div className="text-center w-full max-w-[200px]">
-          {/* ★目標と現在の進捗を分かりやすく統合 */}
           <p className={`text-[10px] uppercase tracking-[0.2em] font-bold mb-1 ${isDarkMode ? 'text-indigo-400' : 'text-sky-400'}`}>
             Hydration Progress
           </p>
@@ -201,7 +201,6 @@ export default function App() {
             </span>
           </div>
 
-          {/* ★繊細な進捗バー */}
           <div className={`w-full h-[2px] rounded-full overflow-hidden mb-1 ${isDarkMode ? 'bg-white/5' : 'bg-sky-100'}`}>
             <motion.div 
               initial={{ width: 0 }}
@@ -210,14 +209,12 @@ export default function App() {
             />
           </div>
 
-          {/* ★達成率のラベル */}
           <p className={`text-[9px] font-medium tracking-widest ${isDarkMode ? 'text-indigo-300/60' : 'text-sky-400'}`}>
             {Math.round((totalToday / settings.dailyGoal) * 100)}% ACHIEVED
           </p>
         </div>
 
         <div className="relative w-52 h-52 flex-shrink-0">
-          {/* ★祝福の瞬間、球体がより鮮やかに、より明るく発光する演出 */}
           <motion.div 
             className={`absolute inset-0 rounded-full border z-40 pointer-events-none transition-all duration-1000 ${
               showCelebrate 
@@ -236,16 +233,13 @@ export default function App() {
           <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none text-center">
             <AnimatePresence>
               {showCelebrate ? (
-                // ★文字全体を囲むコンポーネントの背景色・境界線を削除
                 <motion.div 
                   initial={{ scale: 0.9, opacity: 0 }} 
                   animate={{ scale: 1, opacity: 1 }} 
                   exit={{ scale: 1.1, opacity: 0 }} 
-                  className="flex flex-col items-center" // 背景色やborderのクラスを削除
+                  className="flex flex-col items-center"
                 >
                   <Sparkles className={`w-6 h-6 mb-3 animate-pulse transition-colors duration-1000 ${isDarkMode ? 'text-blue-100' : 'text-sky-300'}`} />
-                  
-                  {/* ★文字自体を囲むコンポーネントも背景色・境界線を削除 */}
                   <div className="flex justify-center items-center">
                     <span className={`text-xl font-extralight tracking-[0.5em] transition-colors duration-1000 ${
                       isDarkMode 
@@ -255,7 +249,6 @@ export default function App() {
                       祝福の雫
                     </span>
                   </div>
-                  
                   <motion.span 
                     initial={{ opacity: 0 }} 
                     animate={{ opacity: 1 }} 
@@ -328,7 +321,6 @@ export default function App() {
               </div>
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
-                {/* ★触覚テストボタン */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Haptic Test</label>
                   <button onClick={() => triggerHaptic('medium')} className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 border transition-all active:scale-[0.98] ${isDarkMode ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300' : 'bg-sky-50 border-sky-100 text-sky-600'}`}>
@@ -367,7 +359,6 @@ export default function App() {
                 isDarkMode ? 'bg-slate-800 text-sky-100' : 'bg-white text-sky-900'
               }`}
             >
-              {/* ★文字色をモードに合わせて変更 */}
               <p className={`mb-8 font-bold leading-relaxed ${isDarkMode ? 'text-white' : 'text-sky-950'}`}>
                 今日の記録をリセットして<br/>履歴に保存しますか？
               </p>
