@@ -330,7 +330,13 @@ export default function App() {
                     /* ★棒が太くなりすぎないように調整 */
                     barCategoryGap="40%"
                   >
-                    <XAxis dataKey="date" hide />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 9, opacity: 0.5, fill: isDarkMode ? '#fff' : '#000' }}
+                      dy={10} // 少し下にずらして見やすく
+                    />
                     <YAxis hide domain={[0, settings.dailyGoal]} />
                     <Bar 
                       dataKey="amount" 
@@ -381,7 +387,7 @@ export default function App() {
       </div>
 
       {/* ★ 下部：RESET DATA 横一列・氷のすりガラス仕様 */}
-      <div className="flex justify-center mt-12 mb-8 z-20">
+      <div className="flex justify-center mt-4 mb-8 z-20">
         <button
           onClick={() => setShowConfirm(true)}
           className={`group flex flex-row items-center gap-4 px-8 py-4 rounded-full transition-all duration-700 border
