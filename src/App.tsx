@@ -160,8 +160,8 @@ export default function App() {
     // 起動時に即実行（ここが一番大事！）
     checkAndNotify();
 
-    // 1分ごとにチェック
-    const timer = setInterval(checkAndNotify, 60000);
+    // 30秒ごとに見守る（1分だと取りこぼすリスクがあるため）
+    const timer = setInterval(checkAndNotify, 30000);
     return () => clearInterval(timer);
   }, [settings.notificationsEnabled]);
 
