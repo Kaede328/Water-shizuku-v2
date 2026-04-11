@@ -17,6 +17,7 @@ self.addEventListener('notificationclick', (event) => {
 // バックグラウンドでの定期実行（ブラウザが許可する場合）
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'shizuku-hourly-check') {
+    console.log('定期バックグラウンド同期を実行中...');
     event.waitUntil(sendHourlyNotification());
   }
 });
@@ -24,13 +25,21 @@ self.addEventListener('periodicsync', (event) => {
 async function sendHourlyNotification() {
   const now = new Date();
   const hour = now.getHours();
+  
+  // 8時〜22時の間だけ
   if (hour >= 8 && hour <= 22) {
+    // 通知を表示
     await self.registration.showNotification("水神の雫", {
       body: `${hour}時の潤いの時間です。一口いかがですか？✨`,
       icon: "/pwa-192x192.png",
       badge: "/pwa-192x192.png",
       tag: "shizuku-daily-alert",
       renotify: true,
+      vibrate: [100, 50, 100],
+      data: {
+        timestamp: now.getTime(),
+        hour: hour
+      }
     });
   }
 }
