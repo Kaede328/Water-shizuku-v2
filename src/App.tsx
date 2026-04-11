@@ -597,33 +597,41 @@ export default function App() {
                           btn.disabled = true;
 
                           try {
-                            // 1. Service Worker 経由を試みる (タイムアウト付き)
+                            // 1. Service Worker 経由を試みる (より迅速に)
                             if ('serviceWorker' in navigator) {
-                              const swPromise = navigator.serviceWorker.ready;
-                              const timeoutPromise = new Promise((_, reject) => 
-                                setTimeout(() => reject(new Error("Timeout")), 3000)
-                              );
+                              // ready を待つのではなく、現在の登録状況を即座に確認
+                              const registration = await navigator.serviceWorker.getRegistration();
                               
-                              try {
-                                const registration = await Promise.race([swPromise, timeoutPromise]) as ServiceWorkerRegistration;
-                                if (registration) {
-                                  await registration.showNotification("水神の雫：テスト", {
-                                    body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                                    icon: "/pwa-192x192.png",
-                                    badge: "/pwa-192x192.png",
-                                    tag: "shizuku-test",
-                                  });
-                                  btn.innerText = "Sent!";
-                                }
-                              } catch (err) {
-                                throw err;
+                              if (registration && registration.active) {
+                                await registration.showNotification("水神の雫：テスト", {
+                                  body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                                  icon: "/pwa-192x192.png",
+                                  badge: "/pwa-192x192.png",
+                                  tag: "shizuku-test",
+                                });
+                                btn.innerText = "Sent!";
+                              } else {
+                                // 登録がないかアクティブでない場合は、タイムアウト付きで ready を待つ
+                                const swPromise = navigator.serviceWorker.ready;
+                                const timeoutPromise = new Promise((_, reject) => 
+                                  setTimeout(() => reject(new Error("Timeout")), 1000) // 1秒に短縮
+                                );
+                                
+                                const reg = await Promise.race([swPromise, timeoutPromise]) as ServiceWorkerRegistration;
+                                await reg.showNotification("水神の雫：テスト", {
+                                  body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                                  icon: "/pwa-192x192.png",
+                                  badge: "/pwa-192x192.png",
+                                  tag: "shizuku-test",
+                                });
+                                btn.innerText = "Sent!";
                               }
                             } else {
                               throw new Error("No SW support");
                             }
                           } catch (err) {
                             console.log("SW通知失敗またはタイムアウト、通常通知を試みます:", err);
-                            // 2. フォールバック：通常の通知
+                            // 2. フォールバック：通常の通知 (即座に実行)
                             if ("Notification" in window && Notification.permission === "granted") {
                               new Notification("水神の雫：テスト", {
                                 body: "（通常）通知の準備はバッチリです！しずくの声が届いていますか？✨",
