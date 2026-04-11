@@ -129,32 +129,39 @@ export default function App() {
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
-    const checkScheduledNotification = () => {
+    const checkAndNotify = async () => {
       const now = new Date();
       const currentHour = now.getHours();
       
-      // 朝8時〜夜22時の間だけ実行
+      // 8時〜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // localStorageから「最後に通知を送った時間」を直接取得（ステートより確実）
         const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
         const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
 
-        // もし今の時間の通知がまだ送られていないなら
+        // まだこの時間の通知を送っていないなら
         if (lastSentHour !== currentHour) {
-          // 通知を実行
-          sendFinalNotification();
-          // 実行した時間を即座に保存
-          localStorage.setItem('shizuku_last_hour', String(currentHour));
-          setLastNotificationTime(now.getTime());
+          // 裏方さん（Service Worker）を呼び出す
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            registration.showNotification("水神の雫", {
+              body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+              icon: "/pwa-192x192.png",
+              tag: "shizuku-daily-alert",
+              renotify: true,
+              vibrate: [100, 50, 100],
+            } as NotificationOptions);
+            localStorage.setItem('shizuku_last_hour', String(currentHour));
+            setLastNotificationTime(now.getTime());
+          }
         }
       }
     };
 
-    // 【重要】アプリを開いた瞬間に、その時間の通知が必要か即座に判定
-    checkScheduledNotification();
+    // 起動時に即実行（ここが一番大事！）
+    checkAndNotify();
 
-    // 10秒ごとにチェック（iPhoneが起きている間に確実に捕まえる）
-    const timer = setInterval(checkScheduledNotification, 10000);
+    // 1分ごとにチェック
+    const timer = setInterval(checkAndNotify, 60000);
     return () => clearInterval(timer);
   }, [settings.notificationsEnabled]);
 
