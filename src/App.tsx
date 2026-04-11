@@ -586,6 +586,28 @@ export default function App() {
                         ※ ブラウザの設定で通知がブロックされています。設定から許可をお願いします。
                       </p>
                     )}
+                    
+                    {/* テスト通知ボタン */}
+                    <div className="mt-4">
+                      <button
+                        onClick={async () => {
+                          const registration = await navigator.serviceWorker.ready;
+                          if (registration) {
+                            await registration.showNotification("水神の雫：テスト", {
+                              body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                              icon: "/pwa-192x192.png",
+                              badge: "/pwa-192x192.png",
+                              tag: "shizuku-test",
+                            });
+                          }
+                        }}
+                        className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                          isDarkMode ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30' : 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+                        }`}
+                      >
+                        Test Notification
+                      </button>
+                    </div>
                   </div>
                 </div>
 
