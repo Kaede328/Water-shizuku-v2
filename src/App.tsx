@@ -597,29 +597,43 @@ export default function App() {
                           btn.disabled = true;
 
                           try {
-                            // 1. Service Worker 経由を試みる
-                            const registration = await navigator.serviceWorker.ready;
-                            if (registration) {
-                              await registration.showNotification("水神の雫：テスト", {
-                                body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                                icon: "/pwa-192x192.png",
-                                badge: "/pwa-192x192.png",
-                                tag: "shizuku-test",
-                              });
+                            // 1. Service Worker 経由を試みる (タイムアウト付き)
+                            if ('serviceWorker' in navigator) {
+                              const swPromise = navigator.serviceWorker.ready;
+                              const timeoutPromise = new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error("Timeout")), 3000)
+                              );
+                              
+                              try {
+                                const registration = await Promise.race([swPromise, timeoutPromise]) as ServiceWorkerRegistration;
+                                if (registration) {
+                                  await registration.showNotification("水神の雫：テスト", {
+                                    body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                                    icon: "/pwa-192x192.png",
+                                    badge: "/pwa-192x192.png",
+                                    tag: "shizuku-test",
+                                  });
+                                  btn.innerText = "Sent!";
+                                }
+                              } catch (err) {
+                                throw err;
+                              }
                             } else {
-                              throw new Error("SW not ready");
+                              throw new Error("No SW support");
                             }
                           } catch (err) {
-                            console.log("SW通知失敗、通常通知を試みます:", err);
+                            console.log("SW通知失敗またはタイムアウト、通常通知を試みます:", err);
                             // 2. フォールバック：通常の通知
                             if ("Notification" in window && Notification.permission === "granted") {
                               new Notification("水神の雫：テスト", {
                                 body: "（通常）通知の準備はバッチリです！しずくの声が届いていますか？✨",
                                 icon: "/pwa-192x192.png",
                               });
+                              btn.innerText = "Sent!";
+                            } else {
+                              btn.innerText = "Error";
                             }
                           } finally {
-                            btn.innerText = "Sent!";
                             setTimeout(() => {
                               btn.innerText = originalText;
                               btn.disabled = false;
