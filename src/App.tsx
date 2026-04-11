@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Clock } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -20,37 +20,9 @@ export default function App() {
   const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
 
   const [settings, setSettings] = useState({
-    notificationsEnabled: true,
     dailyGoal: 2500,
-    forceNightMode: false,
-    notificationInterval: 60 // デフォルトは60分（1時間）
+    forceNightMode: false
   });
-
-  // 2. 通知を送る関数を「裏方さん経由」にパワーアップ
-  const sendFinalNotification = async () => {
-    if (!("Notification" in window)) return;
-    
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      // 登録されている裏方さんを探す
-      const registration = await navigator.serviceWorker.getRegistration();
-      
-      if (registration) {
-        // 裏方さんから通知を出す（これがiOSで一番確実な方法です）
-        registration.showNotification("水神の雫", {
-          body: "ひと口お水を飲んでリフレッシュしませんか？✨",
-          icon: "/pwa-192x192.png",
-          badge: "/pwa-192x192.png",
-          tag: "shizuku-daily-alert",
-          renotify: true,
-          vibrate: [100, 50, 100], // 軽く震えてお知らせ
-        } as NotificationOptions);
-      } else {
-        // 裏方さんがいない場合は通常の通知（予備）
-        new Notification("水神の雫", { body: "ひと口お水を飲みませんか？✨" });
-      }
-    }
-  };
 
   // ★ 過剰摂取チェック：1000ml以上の時に、潤いの知恵をそっと伝える
   const checkOverhydration = (amount: number) => {
@@ -61,25 +33,13 @@ export default function App() {
     }
   };
 
-  // 1. Service Worker の登録と通知の準備
-  useEffect(() => {
-    if ('serviceWorker' in navigator && settings.notificationsEnabled) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then((registration) => {
-          console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
-        }).catch((error) => {
-          console.log('SWの登録に失敗しました:', error);
-        });
-      });
-    }
-  }, [settings.notificationsEnabled]);
-
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
+    const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+
     if (saved) {
       const parsed = JSON.parse(saved);
-      const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
       
       // 保存されているデータの日付を確認
       const lastSavedDate = parsed.lastResetDate;
@@ -101,6 +61,9 @@ export default function App() {
       }
       if (parsed.settings) setSettings(parsed.settings);
     }
+    
+    // 起動時の日付リセット記録
+    localStorage.setItem('lastResetDate', todayStr);
   }, []);
 
   // 2. 保存時に「日付」も一緒に記録する
@@ -112,13 +75,6 @@ export default function App() {
     }));
   }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
-  // 起動時に通知許可を求める
-  useEffect(() => {
-    if (settings.notificationsEnabled && "Notification" in window) {
-      Notification.requestPermission();
-    }
-  }, [settings.notificationsEnabled]);
-
   // 1. シンプルなモード決定ロジック
   useEffect(() => {
     // settings.forceNightMode が true ならダーク、false ならライト
@@ -126,57 +82,10 @@ export default function App() {
     setIsDarkMode(settings.forceNightMode);
   }, [settings.forceNightMode]);
 
-  // 3. 強化版：定時通知ロジック
-  useEffect(() => {
-    if (!settings.notificationsEnabled) return;
-
-    const checkAndNotify = async () => {
-      const now = new Date();
-      const currentTime = now.getTime();
-      const currentHour = now.getHours();
-      
-      // 8時〜22時の間だけ
-      if (currentHour >= 8 && currentHour <= 22) {
-        // localStorageから「最後に送った時刻（ミリ秒）」を取得
-        const lastSentTimeStr = localStorage.getItem('shizuku_last_notified_time');
-        const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
-
-        // 設定された間隔（分）をミリ秒に変換
-        const intervalMs = settings.notificationInterval * 60 * 1000;
-
-        // 前回の通知から設定時間以上が経過しているかチェック
-        if (currentTime - lastSentTime >= intervalMs) {
-          // 裏方さん（Service Worker）を呼び出す
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration) {
-            registration.showNotification("水神の雫", {
-              body: `前回の潤いから${settings.notificationInterval}分が経ちました。一口いかがですか？✨`,
-              icon: "/pwa-192x192.png",
-              tag: "shizuku-alert",
-              renotify: true,
-              vibrate: [100, 50, 100],
-            } as NotificationOptions);
-            
-            localStorage.setItem('shizuku_last_notified_time', String(currentTime));
-            setLastNotificationTime(currentTime);
-          }
-        }
-      }
-    };
-
-    // 起動時に即実行（ここが一番大事！）
-    checkAndNotify();
-
-    // 30秒ごとに見守る（1分だと取りこぼすリスクがあるため）
-    const timer = setInterval(checkAndNotify, 30000);
-    return () => clearInterval(timer);
-  }, [settings.notificationsEnabled, settings.notificationInterval]);
-
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
     const now = Date.now();
     setRecordTimes(prev => [now, ...prev]); // 先に時間を更新
-    setLastNotificationTime(null); // 飲んだので通知フラグをリセット
 
     // 飲みすぎチェックのみ実行
     checkOverhydration(amount);
@@ -303,7 +212,6 @@ export default function App() {
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={sendFinalNotification} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}><Bell className="w-4 h-4" /></button>
           <button onClick={() => setShowStats(!showStats)} className={`p-3 rounded-2xl transition-all active:scale-90 ${showStats ? (isDarkMode ? 'bg-indigo-500 text-white shadow-lg' : 'bg-sky-500 text-white shadow-lg') : (isDarkMode ? 'text-indigo-300' : 'text-sky-600')}`}>
             <BarChart2 className="w-5 h-5" />
           </button>
@@ -539,28 +447,6 @@ export default function App() {
                     <Sparkles size={12} /> Daily Goal: {settings.dailyGoal}ml
                   </label>
                   <input type="range" min="1000" max="4000" step="250" value={settings.dailyGoal} onChange={(e) => setSettings({...settings, dailyGoal: parseInt(e.target.value)})} className="w-full accent-sky-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
-                    <Clock size={12} /> Reminder Interval: Every {settings.notificationInterval} minutes
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[15, 30, 60, 120].map((interval) => (
-                      <button
-                        key={interval}
-                        onClick={() => setSettings({...settings, notificationInterval: interval})}
-                        className={`py-3 rounded-xl text-xs font-medium transition-all ${
-                          settings.notificationInterval === interval
-                            ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20'
-                            : (isDarkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')
-                        }`}
-                      >
-                        {interval}m
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-[9px] opacity-40 italic">※ 8:00〜22:00の間、指定した間隔でしずくが声をかけます。</p>
                 </div>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full mt-10 py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600">Done</button>
