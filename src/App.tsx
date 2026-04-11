@@ -38,8 +38,22 @@ export default function App() {
   useEffect(() => {
     if ('serviceWorker' in navigator && settings.notificationsEnabled) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then((registration) => {
+        navigator.serviceWorker.register('/sw.js').then(async (registration) => {
           console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
+          
+          // 定期的なバックグラウンド同期のリクエスト（対応ブラウザのみ）
+          try {
+            const status = await (navigator as any).permissions.query({
+              name: 'periodic-background-sync',
+            });
+            if (status.state === 'granted') {
+              await (registration as any).periodicSync.register('shizuku-hourly-check', {
+                minInterval: 60 * 60 * 1000, // 1時間ごと
+              });
+            }
+          } catch (e) {
+            console.log('定期同期の登録はスキップされました');
+          }
         }).catch((error) => {
           console.log('SWの登録に失敗しました:', error);
         });
