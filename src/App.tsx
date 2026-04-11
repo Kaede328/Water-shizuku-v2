@@ -48,22 +48,42 @@ export default function App() {
     }
   };
 
+  // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setTotalToday(parsed.totalToday || 0);
-      setHistory(parsed.history || []);
-      setWeeklyHistory(parsed.weeklyHistory || []);
-      // ★ここを追加：飲んだ時間の履歴も復元
-      setRecordTimes(parsed.recordTimes || []); 
+      const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+      
+      // 保存されているデータの日付を確認
+      const lastSavedDate = parsed.lastResetDate;
+
+      if (lastSavedDate && lastSavedDate !== todayStr) {
+        // 日付が変わっていたら、昨日の分を履歴に入れてからリセット
+        setWeeklyHistory(prev => {
+          const newHistory = [{ date: lastSavedDate, amount: parsed.totalToday || 0 }, ...prev].slice(0, 7);
+          return newHistory;
+        });
+        setTotalToday(0);
+        setHistory([]);
+        setRecordTimes([]);
+      } else {
+        setTotalToday(parsed.totalToday || 0);
+        setHistory(parsed.history || []);
+        setWeeklyHistory(parsed.weeklyHistory || []);
+        setRecordTimes(parsed.recordTimes || []); 
+      }
       if (parsed.settings) setSettings(parsed.settings);
     }
   }, []);
 
+  // 2. 保存時に「日付」も一緒に記録する
   useEffect(() => {
-    // ★recordTimes も保存対象に加える
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ totalToday, history, weeklyHistory, recordTimes, settings }));
+    const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+      totalToday, history, weeklyHistory, recordTimes, settings,
+      lastResetDate: todayStr // これで日付の変化を検知します
+    }));
   }, [totalToday, history, weeklyHistory, recordTimes, settings]);
 
   // 起動時に通知許可を求める
@@ -80,7 +100,7 @@ export default function App() {
     setIsDarkMode(settings.forceNightMode);
   }, [settings.forceNightMode]);
 
-  // 2. 定時通知ロジック（毎時0分）
+  // 3. 強化版：定時通知ロジック
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
@@ -88,26 +108,27 @@ export default function App() {
       const now = new Date();
       const currentHour = now.getHours();
       
-      // 朝8時〜夜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // 最後に送った「時間（hour）」をチェック
-        const lastSentHour = lastNotificationTime ? new Date(lastNotificationTime).getHours() : -1;
+        // 最後に送った「時間」をlocalStorageからも取得して確実に比較
+        const savedLastHour = localStorage.getItem('shizuku_last_hour');
         
-        // 今の時間の通知がまだ送られていないなら実行
-        if (lastSentHour !== currentHour) {
+        if (savedLastHour !== String(currentHour)) {
           sendFinalNotification();
+          localStorage.setItem('shizuku_last_hour', String(currentHour));
           setLastNotificationTime(now.getTime());
         }
       }
     };
 
-    // アプリ起動時（バックグラウンドからの復帰時）に即実行
-    checkScheduledNotification();
-
-    // 1分ごとに見守り
-    const timer = setInterval(checkScheduledNotification, 60000);
-    return () => clearInterval(timer);
-  }, [lastNotificationTime, settings.notificationsEnabled]);
+    // 起動時に少しだけ（1秒）待ってからチェック（権限読み込みを待つため）
+    const initialTimer = setTimeout(checkScheduledNotification, 1000);
+    const intervalTimer = setInterval(checkScheduledNotification, 30000);
+    
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [settings.notificationsEnabled]);
 
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
