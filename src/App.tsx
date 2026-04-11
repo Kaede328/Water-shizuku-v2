@@ -36,11 +36,17 @@ export default function App() {
 
   // 1. Service Worker の登録
   useEffect(() => {
-    if ('serviceWorker' in navigator && settings.notificationsEnabled) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').then(async (registration) => {
+    const registerSW = async () => {
+      if ('serviceWorker' in navigator && settings.notificationsEnabled) {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
           console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
           
+          // 通知の許可を求める
+          if ("Notification" in window && Notification.permission === "default") {
+            await Notification.requestPermission();
+          }
+
           // 定期的なバックグラウンド同期のリクエスト（対応ブラウザのみ）
           try {
             const status = await (navigator as any).permissions.query({
@@ -54,11 +60,13 @@ export default function App() {
           } catch (e) {
             console.log('定期同期の登録はスキップされました');
           }
-        }).catch((error) => {
+        } catch (error) {
           console.log('SWの登録に失敗しました:', error);
-        });
-      });
-    }
+        }
+      }
+    };
+
+    registerSW();
   }, [settings.notificationsEnabled]);
 
   // 2. 1時間ごとの定時通知ロジック
@@ -66,6 +74,11 @@ export default function App() {
     if (!settings.notificationsEnabled) return;
 
     const checkAndNotify = async () => {
+      // 通知許可がない場合は何もしない
+      if (!("Notification" in window) || Notification.permission !== "granted") {
+        return;
+      }
+
       const now = new Date();
       const currentHour = now.getHours();
       
@@ -76,17 +89,23 @@ export default function App() {
 
         // まだこの時間の通知を送っていないなら
         if (lastSentHour !== currentHour) {
-          const registration = await navigator.serviceWorker.getRegistration();
+          // Service Worker の準備ができるのを待つ
+          const registration = await navigator.serviceWorker.ready;
           if (registration) {
-            registration.showNotification("水神の雫", {
-              body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
-              icon: "/pwa-192x192.png",
-              badge: "/pwa-192x192.png",
-              tag: "shizuku-daily-alert",
-              renotify: true,
-              vibrate: [100, 50, 100],
-            } as NotificationOptions);
-            localStorage.setItem('shizuku_last_hour', String(currentHour));
+            try {
+              await registration.showNotification("水神の雫", {
+                body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: "shizuku-daily-alert",
+                renotify: true,
+                vibrate: [100, 50, 100],
+              } as NotificationOptions);
+              localStorage.setItem('shizuku_last_hour', String(currentHour));
+              setLastNotificationTime(now.getTime());
+            } catch (err) {
+              console.error("通知の送信に失敗しました:", err);
+            }
           }
         }
       }
