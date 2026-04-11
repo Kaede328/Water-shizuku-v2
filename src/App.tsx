@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -20,6 +20,7 @@ export default function App() {
   const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
 
   const [settings, setSettings] = useState({
+    notificationsEnabled: true,
     dailyGoal: 2500,
     forceNightMode: false
   });
@@ -32,6 +33,55 @@ export default function App() {
       setTimeout(() => setOverhydrationMsg(null), 7000);
     }
   };
+
+  // 1. Service Worker の登録
+  useEffect(() => {
+    if ('serviceWorker' in navigator && settings.notificationsEnabled) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+          console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
+        }).catch((error) => {
+          console.log('SWの登録に失敗しました:', error);
+        });
+      });
+    }
+  }, [settings.notificationsEnabled]);
+
+  // 2. 1時間ごとの定時通知ロジック
+  useEffect(() => {
+    if (!settings.notificationsEnabled) return;
+
+    const checkAndNotify = async () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // 8時〜22時の間だけ
+      if (currentHour >= 8 && currentHour <= 22) {
+        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
+        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
+
+        // まだこの時間の通知を送っていないなら
+        if (lastSentHour !== currentHour) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            registration.showNotification("水神の雫", {
+              body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+              icon: "/pwa-192x192.png",
+              badge: "/pwa-192x192.png",
+              tag: "shizuku-daily-alert",
+              renotify: true,
+              vibrate: [100, 50, 100],
+            } as NotificationOptions);
+            localStorage.setItem('shizuku_last_hour', String(currentHour));
+          }
+        }
+      }
+    };
+
+    checkAndNotify(); // 起動時に即チェック
+    const timer = setInterval(checkAndNotify, 30000); // 30秒ごとに見守る
+    return () => clearInterval(timer);
+  }, [settings.notificationsEnabled]);
 
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
@@ -86,6 +136,7 @@ export default function App() {
   const addWater = (amount: number) => {
     const now = Date.now();
     setRecordTimes(prev => [now, ...prev]); // 先に時間を更新
+    setLastNotificationTime(null); // 飲んだので通知フラグをリセット
 
     // 飲みすぎチェックのみ実行
     checkOverhydration(amount);
@@ -212,6 +263,17 @@ export default function App() {
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => {
+            if ("Notification" in window) {
+              Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                  setSettings({...settings, notificationsEnabled: true});
+                }
+              });
+            }
+          }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}>
+            <Bell className={`w-4 h-4 ${settings.notificationsEnabled ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') : ''}`} />
+          </button>
           <button onClick={() => setShowStats(!showStats)} className={`p-3 rounded-2xl transition-all active:scale-90 ${showStats ? (isDarkMode ? 'bg-indigo-500 text-white shadow-lg' : 'bg-sky-500 text-white shadow-lg') : (isDarkMode ? 'text-indigo-300' : 'text-sky-600')}`}>
             <BarChart2 className="w-5 h-5" />
           </button>
@@ -442,6 +504,22 @@ export default function App() {
               </div>
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <Bell size={18} className="text-sky-500" />
+                    <span className="text-sm font-medium">Notifications</span>
+                  </div>
+                  <button 
+                    onClick={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${settings.notificationsEnabled ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
+                    <motion.div 
+                      animate={{ x: settings.notificationsEnabled ? 26 : 2 }}
+                      className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                    />
+                  </button>
+                </div>
+
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
                     <Sparkles size={12} /> Daily Goal: {settings.dailyGoal}ml
