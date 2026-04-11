@@ -18,6 +18,7 @@ export default function App() {
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
   const [celebrateType, setCelebrateType] = useState<'normal' | 'special'>('normal');
   const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
 
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
@@ -36,6 +37,14 @@ export default function App() {
 
   // 1. Service Worker の登録
   useEffect(() => {
+    const checkPermission = () => {
+      if ("Notification" in window) {
+        setNotificationPermission(Notification.permission);
+      }
+    };
+    checkPermission();
+    const interval = setInterval(checkPermission, 2000); // 2秒ごとに許可状態をチェック
+
     const registerSW = async () => {
       if ('serviceWorker' in navigator && settings.notificationsEnabled) {
         try {
@@ -296,16 +305,22 @@ export default function App() {
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => {
+          <button onClick={async () => {
             if ("Notification" in window) {
-              Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                  setSettings({...settings, notificationsEnabled: true});
-                }
-              });
+              const permission = await Notification.requestPermission();
+              setNotificationPermission(permission);
+              if (permission === "granted") {
+                setSettings({...settings, notificationsEnabled: true});
+              }
             }
-          }} className={`p-2 transition-colors ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}>
-            <Bell className={`w-4 h-4 ${settings.notificationsEnabled ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') : ''}`} />
+          }} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}>
+            <Bell className={`w-4 h-4 transition-colors duration-500 ${
+              notificationPermission === 'denied' 
+                ? 'text-orange-400 animate-pulse' 
+                : (settings.notificationsEnabled && notificationPermission === 'granted' 
+                    ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') 
+                    : '')
+            }`} />
           </button>
           <button onClick={() => setShowStats(!showStats)} className={`p-3 rounded-2xl transition-all active:scale-90 ${showStats ? (isDarkMode ? 'bg-indigo-500 text-white shadow-lg' : 'bg-sky-500 text-white shadow-lg') : (isDarkMode ? 'text-indigo-300' : 'text-sky-600')}`}>
             <BarChart2 className="w-5 h-5" />
@@ -537,20 +552,41 @@ export default function App() {
               </div>
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
-                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3">
-                    <Bell size={18} className="text-sky-500" />
-                    <span className="text-sm font-medium">Notifications</span>
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Bell size={18} className="text-sky-500" />
+                      <span className="text-sm font-medium">Notifications</span>
+                    </div>
+                    <button 
+                      onClick={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
+                      className={`w-12 h-6 rounded-full transition-colors relative ${settings.notificationsEnabled ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: settings.notificationsEnabled ? 26 : 2 }}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
+                      />
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${settings.notificationsEnabled ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-700'}`}
-                  >
-                    <motion.div 
-                      animate={{ x: settings.notificationsEnabled ? 26 : 2 }}
-                      className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
-                    />
-                  </button>
+                  
+                  {/* 通知ステータスの表示 */}
+                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60">
+                      <span>Status</span>
+                      <span className={`font-bold ${
+                        notificationPermission === 'granted' ? 'text-emerald-500' : 
+                        notificationPermission === 'denied' ? 'text-orange-500' : 'text-amber-500'
+                      }`}>
+                        {notificationPermission === 'granted' ? 'Allowed' : 
+                         notificationPermission === 'denied' ? 'Blocked' : 'Not Set'}
+                      </span>
+                    </div>
+                    {notificationPermission === 'denied' && (
+                      <p className="mt-2 text-[9px] text-orange-400 italic leading-relaxed">
+                        ※ ブラウザの設定で通知がブロックされています。設定から許可をお願いします。
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
