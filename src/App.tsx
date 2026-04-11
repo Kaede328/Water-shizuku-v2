@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -22,7 +22,8 @@ export default function App() {
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
     dailyGoal: 2500,
-    forceNightMode: false 
+    forceNightMode: false,
+    notificationInterval: 2 // デフォルトは2時間
   });
 
   // 2. 通知を送る関数を「裏方さん経由」にパワーアップ
@@ -138,8 +139,11 @@ export default function App() {
         const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
         const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
 
-        // まだこの時間の通知を送っていないなら
-        if (lastSentHour !== currentHour) {
+        // 設定された間隔（settings.notificationInterval）を考慮して判定
+        // 初回、または前回の通知から設定時間以上経過している場合
+        const shouldNotify = lastSentHour === -1 || (currentHour - lastSentHour) >= settings.notificationInterval;
+
+        if (shouldNotify) {
           // 裏方さん（Service Worker）を呼び出す
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
@@ -528,8 +532,32 @@ export default function App() {
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50">Daily Goal: {settings.dailyGoal}ml</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
+                    <Sparkles size={12} /> Daily Goal: {settings.dailyGoal}ml
+                  </label>
                   <input type="range" min="1000" max="4000" step="250" value={settings.dailyGoal} onChange={(e) => setSettings({...settings, dailyGoal: parseInt(e.target.value)})} className="w-full accent-sky-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
+                    <Clock size={12} /> Reminder Interval: Every {settings.notificationInterval} hours
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 2, 3, 4].map((interval) => (
+                      <button
+                        key={interval}
+                        onClick={() => setSettings({...settings, notificationInterval: interval})}
+                        className={`py-3 rounded-xl text-xs font-medium transition-all ${
+                          settings.notificationInterval === interval
+                            ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/20'
+                            : (isDarkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')
+                        }`}
+                      >
+                        {interval}h
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[9px] opacity-40 italic">※ 8:00〜22:00の間、指定した間隔でしずくが声をかけます。</p>
                 </div>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full mt-10 py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600">Done</button>
