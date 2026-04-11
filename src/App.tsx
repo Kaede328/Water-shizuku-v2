@@ -590,18 +590,43 @@ export default function App() {
                     {/* テスト通知ボタン */}
                     <div className="mt-4">
                       <button
-                        onClick={async () => {
-                          const registration = await navigator.serviceWorker.ready;
-                          if (registration) {
-                            await registration.showNotification("水神の雫：テスト", {
-                              body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                              icon: "/pwa-192x192.png",
-                              badge: "/pwa-192x192.png",
-                              tag: "shizuku-test",
-                            });
+                        onClick={async (e) => {
+                          const btn = e.currentTarget;
+                          const originalText = btn.innerText;
+                          btn.innerText = "Sending...";
+                          btn.disabled = true;
+
+                          try {
+                            // 1. Service Worker 経由を試みる
+                            const registration = await navigator.serviceWorker.ready;
+                            if (registration) {
+                              await registration.showNotification("水神の雫：テスト", {
+                                body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                                icon: "/pwa-192x192.png",
+                                badge: "/pwa-192x192.png",
+                                tag: "shizuku-test",
+                              });
+                            } else {
+                              throw new Error("SW not ready");
+                            }
+                          } catch (err) {
+                            console.log("SW通知失敗、通常通知を試みます:", err);
+                            // 2. フォールバック：通常の通知
+                            if ("Notification" in window && Notification.permission === "granted") {
+                              new Notification("水神の雫：テスト", {
+                                body: "（通常）通知の準備はバッチリです！しずくの声が届いていますか？✨",
+                                icon: "/pwa-192x192.png",
+                              });
+                            }
+                          } finally {
+                            btn.innerText = "Sent!";
+                            setTimeout(() => {
+                              btn.innerText = originalText;
+                              btn.disabled = false;
+                            }, 2000);
                           }
                         }}
-                        className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 ${
                           isDarkMode ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30' : 'bg-sky-100 text-sky-600 hover:bg-sky-200'
                         }`}
                       >
