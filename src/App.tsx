@@ -23,7 +23,7 @@ export default function App() {
     notificationsEnabled: true,
     dailyGoal: 2500,
     forceNightMode: false,
-    notificationInterval: 2 // デフォルトは2時間
+    notificationInterval: 60 // デフォルトは60分（1時間）
   });
 
   // 2. 通知を送る関数を「裏方さん経由」にパワーアップ
@@ -132,30 +132,33 @@ export default function App() {
 
     const checkAndNotify = async () => {
       const now = new Date();
+      const currentTime = now.getTime();
       const currentHour = now.getHours();
       
       // 8時〜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
-        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
+        // localStorageから「最後に送った時刻（ミリ秒）」を取得
+        const lastSentTimeStr = localStorage.getItem('shizuku_last_notified_time');
+        const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
 
-        // 設定された間隔（settings.notificationInterval）を考慮して判定
-        // 初回、または前回の通知から設定時間以上経過している場合
-        const shouldNotify = lastSentHour === -1 || (currentHour - lastSentHour) >= settings.notificationInterval;
+        // 設定された間隔（分）をミリ秒に変換
+        const intervalMs = settings.notificationInterval * 60 * 1000;
 
-        if (shouldNotify) {
+        // 前回の通知から設定時間以上が経過しているかチェック
+        if (currentTime - lastSentTime >= intervalMs) {
           // 裏方さん（Service Worker）を呼び出す
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
             registration.showNotification("水神の雫", {
-              body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+              body: `前回の潤いから${settings.notificationInterval}分が経ちました。一口いかがですか？✨`,
               icon: "/pwa-192x192.png",
-              tag: "shizuku-daily-alert",
+              tag: "shizuku-alert",
               renotify: true,
               vibrate: [100, 50, 100],
             } as NotificationOptions);
-            localStorage.setItem('shizuku_last_hour', String(currentHour));
-            setLastNotificationTime(now.getTime());
+            
+            localStorage.setItem('shizuku_last_notified_time', String(currentTime));
+            setLastNotificationTime(currentTime);
           }
         }
       }
@@ -167,7 +170,7 @@ export default function App() {
     // 30秒ごとに見守る（1分だと取りこぼすリスクがあるため）
     const timer = setInterval(checkAndNotify, 30000);
     return () => clearInterval(timer);
-  }, [settings.notificationsEnabled]);
+  }, [settings.notificationsEnabled, settings.notificationInterval]);
 
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
@@ -540,10 +543,10 @@ export default function App() {
 
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
-                    <Clock size={12} /> Reminder Interval: Every {settings.notificationInterval} hours
+                    <Clock size={12} /> Reminder Interval: Every {settings.notificationInterval} minutes
                   </label>
                   <div className="grid grid-cols-4 gap-2">
-                    {[1, 2, 3, 4].map((interval) => (
+                    {[15, 30, 60, 120].map((interval) => (
                       <button
                         key={interval}
                         onClick={() => setSettings({...settings, notificationInterval: interval})}
@@ -553,7 +556,7 @@ export default function App() {
                             : (isDarkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')
                         }`}
                       >
-                        {interval}h
+                        {interval}m
                       </button>
                     ))}
                   </div>
