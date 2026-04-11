@@ -108,26 +108,29 @@ export default function App() {
       const now = new Date();
       const currentHour = now.getHours();
       
+      // 朝8時〜夜22時の間だけ実行
       if (currentHour >= 8 && currentHour <= 22) {
-        // 最後に送った「時間」をlocalStorageからも取得して確実に比較
-        const savedLastHour = localStorage.getItem('shizuku_last_hour');
-        
-        if (savedLastHour !== String(currentHour)) {
+        // localStorageから「最後に通知を送った時間」を直接取得（ステートより確実）
+        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
+        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
+
+        // もし今の時間の通知がまだ送られていないなら
+        if (lastSentHour !== currentHour) {
+          // 通知を実行
           sendFinalNotification();
+          // 実行した時間を即座に保存
           localStorage.setItem('shizuku_last_hour', String(currentHour));
           setLastNotificationTime(now.getTime());
         }
       }
     };
 
-    // 起動時に少しだけ（1秒）待ってからチェック（権限読み込みを待つため）
-    const initialTimer = setTimeout(checkScheduledNotification, 1000);
-    const intervalTimer = setInterval(checkScheduledNotification, 30000);
-    
-    return () => {
-      clearTimeout(initialTimer);
-      clearInterval(intervalTimer);
-    };
+    // 【重要】アプリを開いた瞬間に、その時間の通知が必要か即座に判定
+    checkScheduledNotification();
+
+    // 10秒ごとにチェック（iPhoneが起きている間に確実に捕まえる）
+    const timer = setInterval(checkScheduledNotification, 10000);
+    return () => clearInterval(timer);
   }, [settings.notificationsEnabled]);
 
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
@@ -158,6 +161,28 @@ export default function App() {
     // 履歴の更新
     setHistory(prev => [totalToday, ...prev]);
     setTotalToday(newTotal);
+  };
+
+  // 1. お手紙のメッセージを生成する関数
+  const getWeeklyLetter = () => {
+    if (weeklyHistory.length < 7) return "あと少し、楓さんの歩みが溜まれば、一週間の物語を綴れそうです。";
+
+    const total = weeklyHistory.reduce((sum, day) => sum + day.amount, 0);
+    const sortedHistory = [...weeklyHistory].sort((a, b) => b.amount - a.amount);
+    const maxDay = sortedHistory[0];
+    const goalReachedCount = weeklyHistory.filter(day => day.amount >= settings.dailyGoal).length;
+
+    let message = `今週の楓さんは、${maxDay.date}に一番澄み切っていましたね。 `;
+    
+    if (goalReachedCount >= 5) {
+      message += "まるで豊かな水をたたえた美しい湖のような、満たされた一週間でした。";
+    } else if (total > settings.dailyGoal * 3) {
+      message += "穏やかな川のように、たゆまず潤いを重ねた日々。楓さんの体が喜んでいます。";
+    } else {
+      message += "今週は静かな泉のように、ご自身をゆったりと休める時間も大切にできましたか？";
+    }
+
+    return message;
   };
 
   const finalReset = () => {
@@ -385,6 +410,17 @@ export default function App() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+
+              {/* お手紙セクション */}
+              <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-sky-100'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={12} className={isDarkMode ? 'text-indigo-400' : 'text-sky-500'} />
+                  <span className={`text-[9px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly Letter</span>
+                </div>
+                <p className={`text-[11px] leading-relaxed italic font-light ${isDarkMode ? 'text-indigo-200/80' : 'text-sky-800/80'}`}>
+                  「{getWeeklyLetter()}」
+                </p>
               </div>
             </motion.div>
           )}
