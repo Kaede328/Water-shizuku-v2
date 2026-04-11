@@ -25,17 +25,29 @@ export default function App() {
     forceNightMode: false 
   });
 
-  // ★ 通知：iPhoneの自動付与(from しずく)と繋がって1行に見えるように
+  // 2. 通知を送る関数を「裏方さん経由」にパワーアップ
   const sendFinalNotification = async () => {
     if (!("Notification" in window)) return;
+    
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      new Notification("水神の雫", { 
-        // 本文から「From しずく」を消し、iPhoneの自動付与に任せます
-        body: "ひと口お水を飲んでリフレッシュしませんか？✨",
-        icon: "/pwa-192x192.png",
-        tag: "shizuku-daily-alert"
-      });
+      // 登録されている裏方さんを探す
+      const registration = await navigator.serviceWorker.getRegistration();
+      
+      if (registration) {
+        // 裏方さんから通知を出す（これがiOSで一番確実な方法です）
+        registration.showNotification("水神の雫", {
+          body: "ひと口お水を飲んでリフレッシュしませんか？✨",
+          icon: "/pwa-192x192.png",
+          badge: "/pwa-192x192.png",
+          tag: "shizuku-daily-alert",
+          renotify: true,
+          vibrate: [100, 50, 100], // 軽く震えてお知らせ
+        } as NotificationOptions);
+      } else {
+        // 裏方さんがいない場合は通常の通知（予備）
+        new Notification("水神の雫", { body: "ひと口お水を飲みませんか？✨" });
+      }
     }
   };
 
@@ -47,6 +59,19 @@ export default function App() {
       setTimeout(() => setOverhydrationMsg(null), 7000);
     }
   };
+
+  // 1. Service Worker の登録と通知の準備
+  useEffect(() => {
+    if ('serviceWorker' in navigator && settings.notificationsEnabled) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+          console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
+        }).catch((error) => {
+          console.log('SWの登録に失敗しました:', error);
+        });
+      });
+    }
+  }, [settings.notificationsEnabled]);
 
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
@@ -165,21 +190,36 @@ export default function App() {
 
   // 1. お手紙のメッセージを生成する関数
   const getWeeklyLetter = () => {
-    if (weeklyHistory.length < 7) return "あと少し、楓さんの歩みが溜まれば、一週間の物語を綴れそうです。";
+    const daysCount = weeklyHistory.length;
+    
+    // データがまだ1日もない場合
+    if (daysCount === 0) {
+      return "楓さん、今日から新しい潤いの物語を一緒に綴っていきましょう。";
+    }
 
     const total = weeklyHistory.reduce((sum, day) => sum + day.amount, 0);
+    const avg = Math.round(total / daysCount);
     const sortedHistory = [...weeklyHistory].sort((a, b) => b.amount - a.amount);
     const maxDay = sortedHistory[0];
-    const goalReachedCount = weeklyHistory.filter(day => day.amount >= settings.dailyGoal).length;
 
-    let message = `今週の楓さんは、${maxDay.date}に一番澄み切っていましたね。 `;
+    // 1〜3日目のメッセージ
+    if (daysCount >= 1 && daysCount <= 3) {
+      return `まだ始まったばかりですが、${maxDay.date}の楓さんはとても澄み切っていました。少しずつ、体に潤いが馴染んできていますね。`;
+    }
+
+    // 4〜6日目のメッセージ
+    if (daysCount >= 4 && daysCount <= 6) {
+      return `もう数日も続いていますね。平均 ${avg}ml の潤いは、今の楓さんの体にとって、静かに染み渡る恵みの雨のようです。`;
+    }
+
+    // 7日目以上のメッセージ（従来のロジック）
+    const goalReachedCount = weeklyHistory.filter(day => day.amount >= settings.dailyGoal).length;
+    let message = `この一週間の楓さんは、${maxDay.date}に一番澄み切っていましたね。 `;
     
     if (goalReachedCount >= 5) {
-      message += "まるで豊かな水をたたえた美しい湖のような、満たされた一週間でした。";
-    } else if (total > settings.dailyGoal * 3) {
-      message += "穏やかな川のように、たゆまず潤いを重ねた日々。楓さんの体が喜んでいます。";
+      message += "まるで豊かな水をたたえた美しい湖のような、満たされた日々でした。";
     } else {
-      message += "今週は静かな泉のように、ご自身をゆったりと休める時間も大切にできましたか？";
+      message += "穏やかな川のように、たゆまず潤いを重ねた楓さんの歩みを、しずくはずっと見ていましたよ。";
     }
 
     return message;
