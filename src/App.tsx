@@ -98,51 +98,38 @@ export default function App() {
     registerSW();
   }, [settings.notificationsEnabled]);
 
-  // 2. 1時間ごとの定時通知ロジック
+  // 2. 1時間ごとの定時通知ロジック（修正版：よりシンプルで執念深く）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
     const checkAndNotify = async () => {
-      // 通知許可がない場合は何もしない
-      if (!("Notification" in window) || Notification.permission !== "granted") {
-        return;
-      }
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
 
       const now = new Date();
       const currentHour = now.getHours();
       
       // 8時〜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // 最後に通知を送った時間を確認
-        const lastSentTimeStr = localStorage.getItem('shizuku_last_sent_time');
-        const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
+        // 本番通知専用の記録キーを使います（テスト通知と分けるため）
+        const lastProductionSentHour = localStorage.getItem('shizuku_last_prod_hour');
         
-        // 最後に水を記録した時間を確認
-        // 記録がない場合は、現在時刻より5分以上前の値をデフォルトにして、初回通知をスムーズにします
-        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : (now.getTime() - (10 * 60 * 1000));
-        
-        // 【テスト用】通知間隔を15分から5分に短縮しました
-        const notificationInterval = 5 * 60 * 1000;
-        
-        const shouldNotify = (now.getTime() - lastSentTime > notificationInterval) && 
-                           (now.getTime() - lastRecordTime > notificationInterval);
-
-        if (shouldNotify) {
-          // Service Worker の準備ができるのを待つ
+        // 【ポイント】「その時間の通知をまだ送っていない」なら、即座に送る！
+        if (lastProductionSentHour !== String(currentHour)) {
           const registration = await navigator.serviceWorker.ready;
           if (registration) {
             try {
-                await registration.showNotification("水神の雫", {
-                  body: `そろそろ潤いの時間ではありませんか？✨\n一口飲んで、心も体もリフレッシュしましょう。`,
-                  icon: "/pwa-192x192.png",
-                  badge: "/pwa-192x192.png",
-                  tag: "shizuku-hydration-alert",
-                  renotify: true,
-                  vibrate: [100, 50, 100],
-                } as NotificationOptions);
-                
-                localStorage.setItem('shizuku_last_sent_time', String(now.getTime()));
-                setLastNotificationTime(now.getTime());
+              await registration.showNotification("水神の雫", {
+                body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+                icon: "/pwa-192x192.png",
+                badge: "/pwa-192x192.png",
+                tag: "shizuku-prod-alert", // タグを分けてテスト通知と区別
+                renotify: true,
+                vibrate: [100, 50, 100],
+              } as NotificationOptions);
+              
+              // 送った「時間（Hour）」を記録
+              localStorage.setItem('shizuku_last_prod_hour', String(currentHour));
+              setLastNotificationTime(now.getTime());
             } catch (err) {
               console.error("通知の送信に失敗しました:", err);
             }
@@ -151,10 +138,11 @@ export default function App() {
       }
     };
 
-    checkAndNotify(); // 起動時に即チェック
-    const timer = setInterval(checkAndNotify, 10000); // チェック間隔を30秒から10秒に短縮
+    const timer = setInterval(checkAndNotify, 10000); // 10秒おきに監視
+    checkAndNotify(); 
+
     return () => clearInterval(timer);
-  }, [settings.notificationsEnabled, recordTimes]);
+  }, [settings.notificationsEnabled]);
 
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
