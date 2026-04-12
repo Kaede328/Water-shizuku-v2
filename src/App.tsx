@@ -21,6 +21,7 @@ export default function App() {
   });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [activeMessageIndex, setActiveMessageIndex] = useState(0);
+  const [lastTestTime, setLastTestTime] = useState<number | null>(null);
 
   const hydrationMessages = [
     "お水は、心と体を繋ぐ優しい魔法ですよ。",
@@ -534,6 +535,16 @@ export default function App() {
                       </span>
                     </div>
 
+                    {/* 最終テスト時刻の表示 */}
+                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60 mt-2">
+                      <span>Last Test</span>
+                      <span className="font-mono">
+                        {lastTestTime 
+                          ? new Date(lastTestTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                          : 'None'}
+                      </span>
+                    </div>
+
                     {notificationPermission === 'denied' && (
                       <p className="mt-2 text-[9px] text-orange-400 italic leading-relaxed">
                         ※ ブラウザの設定で通知がブロックされています。設定から許可をお願いします。
@@ -564,8 +575,7 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
-                                setLastNotificationTime(now);
-                                localStorage.setItem('shizuku_last_sent_time', String(now));
+                                setLastTestTime(now);
                               } else {
                                 // 登録がないかアクティブでない場合は、タイムアウト付きで ready を待つ
                                 const swPromise = navigator.serviceWorker.ready;
@@ -581,8 +591,7 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
-                                setLastNotificationTime(now);
-                                localStorage.setItem('shizuku_last_sent_time', String(now));
+                                setLastTestTime(now);
                               }
                             } else {
                               throw new Error("No SW support");
@@ -597,8 +606,7 @@ export default function App() {
                                 icon: "/pwa-192x192.png",
                               });
                               btn.innerText = "Sent!";
-                              setLastNotificationTime(now);
-                              localStorage.setItem('shizuku_last_sent_time', String(now));
+                              setLastTestTime(now);
                             } else {
                               btn.innerText = "Error";
                             }
