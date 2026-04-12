@@ -310,9 +310,11 @@ export default function App() {
             if ("Notification" in window) {
               const permission = await Notification.requestPermission();
               setNotificationPermission(permission);
-              if (permission === "granted") {
-                setSettings({...settings, notificationsEnabled: true});
-              }
+              
+              setSettings(prev => ({
+                ...prev,
+                notificationsEnabled: !prev.notificationsEnabled
+              }));
             }
           }} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}>
             <Bell className={`w-4 h-4 transition-colors duration-500 ${
