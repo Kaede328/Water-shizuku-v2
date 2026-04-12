@@ -118,7 +118,7 @@ export default function App() {
     registerBackgroundFetch();
   }, []);
 
-  // 2. 5分ごとのテスト通知ロジック（修正版：周期判定で確実に）
+  // 2. 1時間ごとの定時通知ロジック（修正版：さらに「しつこく」確実に）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
@@ -127,34 +127,32 @@ export default function App() {
 
       const now = new Date();
       const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
       
-      // 8時〜22時の間だけ動かします
+      // 8時〜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        // 【ポイント】「何回目の5分間か」を計算します（例：15時10分なら「10÷5＝2回目」）
-        const intervalIndex = Math.floor(currentMinute / 5);
-        // 「時」と「5分周期のインデックス」を組み合わせて、ユニークなキーを作ります
-        const periodKey = `${currentHour}-${intervalIndex}`;
-        
-        const lastSentPeriod = localStorage.getItem('shizuku_last_test_period');
+        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
+        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
 
-        // この「5分間」の通知をまだ送っていないなら実行！
-        if (lastSentPeriod !== periodKey) {
-          const registration = await navigator.serviceWorker.ready;
+        // 「今の時間」がまだ未送信なら、何度でもトライする
+        if (lastSentHour !== currentHour) {
+          const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
             try {
+              // iOS向けの通知オプションを最大化
               await registration.showNotification("水神の雫", {
-                body: `5分ごとの潤いチェックです。今の気分はいかがですか？💧`,
+                body: `${currentHour}時の潤いの時間です。一口いかがですか？💧`,
                 icon: "/pwa-192x192.png",
                 badge: "/pwa-192x192.png",
-                tag: "shizuku-5min-alert",
+                tag: "shizuku-alert", // 同じタグで上書き
                 renotify: true,
+                silent: false, // 音を出す
                 vibrate: [100, 50, 100],
+                requireInteraction: true // 楓さんが消すまで残るように促す
               } as NotificationOptions);
               
-              // 送った「5分周期」を記憶に刻みます
-              localStorage.setItem('shizuku_last_test_period', periodKey);
+              localStorage.setItem('shizuku_last_hour', String(currentHour));
               setLastNotificationTime(now.getTime());
+              console.log(`${currentHour}時の通知を裏方さんに託しました。`);
             } catch (err) {
               console.error("通知の送信に失敗しました:", err);
             }
@@ -163,9 +161,9 @@ export default function App() {
       }
     };
 
-    // 10秒おきにチェック（5分間隔を逃しません）
+    // 10秒おきにチェック（iPhoneが起きている隙を逃さない）
     const timer = setInterval(checkAndNotify, 10000);
-    checkAndNotify(); 
+    checkAndNotify(); // 起動時にも実行
 
     return () => clearInterval(timer);
   }, [settings.notificationsEnabled]);
