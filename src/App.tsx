@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, RefreshCw, Clock } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
-import { initOneSignal, sendTestNotification } from './lib/onesignal';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
-
-  useEffect(() => {
-    initOneSignal();
-  }, []);
 
   const [history, setHistory] = useState<number[]>([]);
   const [recordTimes, setRecordTimes] = useState<number[]>([]);
@@ -42,34 +37,8 @@ export default function App() {
 
   const [settings, setSettings] = useState({
     dailyGoal: 2500,
-    forceNightMode: false,
-    notificationStart: 9, // 朝9時
-    notificationEnd: 21   // 夜21時
+    forceNightMode: false
   });
-
-  // ★ 定期通知のスケジュールロジック
-  useEffect(() => {
-    const checkNotification = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-
-      // 毎時0分にチェック（多少の誤差を許容）
-      if (currentMinute === 0) {
-        if (currentHour >= settings.notificationStart && currentHour <= settings.notificationEnd) {
-          if (Notification.permission === 'granted') {
-            new Notification('水神の雫', {
-              body: 'お水を飲む時間ですよ💧',
-              icon: '/Water-shizuku-v2/Icon.jpg'
-            });
-          }
-        }
-      }
-    };
-
-    const interval = setInterval(checkNotification, 60000); // 1分ごとにチェック
-    return () => clearInterval(interval);
-  }, [settings.notificationStart, settings.notificationEnd]);
 
   // ★ 過剰摂取チェック：1000ml以上の時に、潤いの知恵をそっと伝える
   const checkOverhydration = (amount: number) => {
@@ -407,32 +376,6 @@ export default function App() {
                     <Sparkles size={12} /> Daily Goal: {settings.dailyGoal}ml
                   </label>
                   <input type="range" min="1000" max="4000" step="250" value={settings.dailyGoal} onChange={(e) => setSettings({...settings, dailyGoal: parseInt(e.target.value)})} className="w-full accent-sky-500 h-2 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
-                    <Clock size={12} /> Notification Window: {settings.notificationStart}:00 - {settings.notificationEnd}:00
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 space-y-1">
-                      <span className="text-[9px] opacity-40">Start</span>
-                      <input type="number" min="0" max="23" value={settings.notificationStart} onChange={(e) => setSettings({...settings, notificationStart: Math.max(0, Math.min(23, parseInt(e.target.value) || 0))})} className="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm" />
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <span className="text-[9px] opacity-40">End</span>
-                      <input type="number" min="0" max="23" value={settings.notificationEnd} onChange={(e) => setSettings({...settings, notificationEnd: Math.max(0, Math.min(23, parseInt(e.target.value) || 0))})} className="w-full p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button 
-                    onClick={sendTestNotification}
-                    className="w-full flex items-center justify-center gap-2 py-3 bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400 rounded-xl text-xs font-bold transition-all active:scale-95"
-                  >
-                    <Bell size={14} />
-                    今すぐテスト通知を送る
-                  </button>
                 </div>
               </div>
               <button onClick={() => setShowSettings(false)} className="w-full mt-10 py-4 bg-sky-500 text-white rounded-2xl font-bold active:bg-sky-600">Done</button>

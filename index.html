@@ -1,6 +1,17 @@
 <!doctype html>
 <html lang="en">
   <head>
+
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "de7c6192-9789-48bb-af64-3c63254b3981",
+    });
+  });
+</script>
+
     <link rel="icon" href="/Water-shizuku-v2/Icon.jpg" />
     <link rel="apple-touch-icon" href="/Water-shizuku-v2/Icon.jpg" />
     
@@ -8,25 +19,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="manifest.json" />
     <title>水神の雫</title>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        // 現在のホスト名を確認
-        const hostname = window.location.hostname;
-        const isAllowedDomain = hostname === 'kaede328.github.io' || hostname === 'localhost' || hostname === '127.0.0.1';
-
-        // 許可されたドメインでない場合は初期化をスキップ（エラーを避けるため）
-        if (!isAllowedDomain) {
-          console.log(`OneSignal initialization skipped on unauthorized domain: ${hostname}`);
-          return;
-        }
-
-        await OneSignal.init({
-          appId: "de7c6192-9789-48bb-af64-3c63254b3981",
-        });
-      });
-    </script>
   </head>
   <body>
     <div id="root"></div>
