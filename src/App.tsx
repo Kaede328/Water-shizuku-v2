@@ -544,6 +544,7 @@ export default function App() {
                           btn.disabled = true;
 
                           try {
+                            const now = Date.now();
                             // 1. Service Worker 経由を試みる (より迅速に)
                             if ('serviceWorker' in navigator) {
                               // ready を待つのではなく、現在の登録状況を即座に確認
@@ -557,6 +558,8 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
+                                setLastNotificationTime(now);
+                                localStorage.setItem('shizuku_last_sent_time', String(now));
                               } else {
                                 // 登録がないかアクティブでない場合は、タイムアウト付きで ready を待つ
                                 const swPromise = navigator.serviceWorker.ready;
@@ -572,12 +575,15 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
+                                setLastNotificationTime(now);
+                                localStorage.setItem('shizuku_last_sent_time', String(now));
                               }
                             } else {
                               throw new Error("No SW support");
                             }
                           } catch (err) {
                             console.log("SW通知失敗またはタイムアウト、通常通知を試みます:", err);
+                            const now = Date.now();
                             // 2. フォールバック：通常の通知 (即座に実行)
                             if ("Notification" in window && Notification.permission === "granted") {
                               new Notification("水神の雫：テスト", {
@@ -585,6 +591,8 @@ export default function App() {
                                 icon: "/pwa-192x192.png",
                               });
                               btn.innerText = "Sent!";
+                              setLastNotificationTime(now);
+                              localStorage.setItem('shizuku_last_sent_time', String(now));
                             } else {
                               btn.innerText = "Error";
                             }
