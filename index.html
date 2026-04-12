@@ -6,6 +6,16 @@
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
+    // 現在のホスト名を確認
+    const hostname = window.location.hostname;
+    const isAllowedDomain = hostname === 'kaede328.github.io' || hostname === 'localhost' || hostname === '127.0.0.1';
+
+    // 許可されたドメインでない場合は初期化をスキップ（エラーを避けるため）
+    if (!isAllowedDomain) {
+      console.log(`OneSignal initialization skipped on unauthorized domain: ${hostname}`);
+      return;
+    }
+
     await OneSignal.init({
       appId: "de7c6192-9789-48bb-af64-3c63254b3981",
     });
