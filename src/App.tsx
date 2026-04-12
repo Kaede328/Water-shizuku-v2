@@ -15,13 +15,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
   const [celebrateType, setCelebrateType] = useState<'normal' | 'special'>('normal');
-  const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(() => {
-    const saved = localStorage.getItem('shizuku_last_sent_time');
-    return saved ? parseInt(saved, 10) : null;
-  });
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [activeMessageIndex, setActiveMessageIndex] = useState(0);
-  const [lastTestTime, setLastTestTime] = useState<number | null>(null);
 
   const hydrationMessages = [
     "お水は、心と体を繋ぐ優しい魔法ですよ。",
@@ -41,7 +35,6 @@ export default function App() {
   }, []);
 
   const [settings, setSettings] = useState({
-    notificationsEnabled: true,
     dailyGoal: 2500,
     forceNightMode: false
   });
@@ -54,134 +47,6 @@ export default function App() {
       setTimeout(() => setOverhydrationMsg(null), 7000);
     }
   };
-
-  // 1. Service Worker の登録
-  useEffect(() => {
-    const checkPermission = () => {
-      if ("Notification" in window) {
-        setNotificationPermission(Notification.permission);
-      }
-    };
-    checkPermission();
-    const interval = setInterval(checkPermission, 2000); // 2秒ごとに許可状態をチェック
-
-    const registerSW = async () => {
-      if ('serviceWorker' in navigator && settings.notificationsEnabled) {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('しずくの裏方さん（SW）が登録されました:', registration.scope);
-          
-          // 通知の許可を求める
-          if ("Notification" in window && Notification.permission === "default") {
-            await Notification.requestPermission();
-          }
-
-          // 定期的なバックグラウンド同期のリクエスト（対応ブラウザのみ）
-          try {
-            const status = await (navigator as any).permissions.query({
-              name: 'periodic-background-sync',
-            });
-            if (status.state === 'granted') {
-              await (registration as any).periodicSync.register('shizuku-hourly-check', {
-                minInterval: 15 * 60 * 1000, // 15分ごと
-              });
-            }
-          } catch (e) {
-            console.log('定期同期の登録はスキップされました');
-          }
-        } catch (error) {
-          console.log('SWの登録に失敗しました:', error);
-        }
-      }
-    };
-
-    registerSW();
-  }, [settings.notificationsEnabled]);
-
-  // 3. Background Fetch の登録（iOS等でのバックグラウンド動作の可能性を広げる）
-  useEffect(() => {
-    const registerBackgroundFetch = async () => {
-      if ('serviceWorker' in navigator && 'BackgroundFetchManager' in window) {
-        const registration = await navigator.serviceWorker.ready;
-        try {
-          // iPhone等に「定期的に裏側でチェックしてね」と予約を入れます
-          await (registration as any).backgroundFetch.fetch('shizuku-fetch', ['/index.html'], {
-            title: 'しずくの見守り',
-            downloadTotal: 1000, 
-          });
-          console.log('Background Fetchの予約が完了しました！');
-        } catch (err) {
-          console.log('Background Fetchの予約に失敗しました（すでにあるか、未対応です）');
-        }
-      }
-    };
-    registerBackgroundFetch();
-  }, []);
-
-  // 2. 1時間ごとの定時通知ロジック（修正版：さらに「しつこく」確実に）
-  useEffect(() => {
-    if (!settings.notificationsEnabled) return;
-
-    const checkAndNotify = async () => {
-      if (!("Notification" in window) || Notification.permission !== "granted") return;
-
-      const now = new Date();
-      const currentHour = now.getHours();
-      
-      // 8時〜22時の間だけ
-      if (currentHour >= 8 && currentHour <= 22) {
-        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
-        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
-
-        // 「今の時間」がまだ未送信なら、何度でもトライする
-        if (lastSentHour !== currentHour) {
-          try {
-            // 1. まずは Service Worker 経由を試みる（バックグラウンド対応）
-            const registration = await navigator.serviceWorker.ready;
-            if (registration) {
-              await registration.showNotification("水神の雫", {
-                body: `${currentHour}時の潤いの時間です。一口いかがですか？💧`,
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
-                tag: "shizuku-alert",
-                renotify: true,
-                silent: false,
-                vibrate: [100, 50, 100],
-                requireInteraction: true
-              } as NotificationOptions);
-              
-              localStorage.setItem('shizuku_last_hour', String(currentHour));
-              setLastNotificationTime(now.getTime());
-              console.log(`${currentHour}時の通知をSW経由で送りました。`);
-              return; // 成功したら終了
-            }
-          } catch (swErr) {
-            console.log("SW経由の通知に失敗しました。フォールバックを試みます:", swErr);
-          }
-
-          // 2. フォールバック：通常の Notification オブジェクト（フォアグラウンド用）
-          try {
-            new Notification("水神の雫", {
-              body: `${currentHour}時の潤いの時間です。一口いかがですか？💧`,
-              icon: "/pwa-192x192.png",
-              tag: "shizuku-alert",
-            });
-            localStorage.setItem('shizuku_last_hour', String(currentHour));
-            setLastNotificationTime(now.getTime());
-            console.log(`${currentHour}時の通知を通常Notificationで送りました。`);
-          } catch (err) {
-            console.error("すべての通知手段に失敗しました:", err);
-          }
-        }
-      }
-    };
-
-    // 10秒おきにチェック（iPhoneが起きている隙を逃さない）
-    const timer = setInterval(checkAndNotify, 10000);
-    checkAndNotify(); // 起動時にも実行
-
-    return () => clearInterval(timer);
-  }, [settings.notificationsEnabled]);
 
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
@@ -318,25 +183,6 @@ export default function App() {
             title="アプリを更新"
           >
             <RefreshCw className="w-4 h-4" />
-          </button>
-          <button onClick={async () => {
-            if ("Notification" in window) {
-              const permission = await Notification.requestPermission();
-              setNotificationPermission(permission);
-              
-              setSettings(prev => ({
-                ...prev,
-                notificationsEnabled: !prev.notificationsEnabled
-              }));
-            }
-          }} className={`p-2 transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}>
-            <Bell className={`w-4 h-4 transition-colors duration-500 ${
-              notificationPermission === 'denied' 
-                ? 'text-orange-400 animate-pulse' 
-                : (settings.notificationsEnabled && notificationPermission === 'granted' 
-                    ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') 
-                    : '')
-            }`} />
           </button>
         </div>
       </header>
@@ -524,138 +370,6 @@ export default function App() {
               </div>
 
               <div className="space-y-8 max-h-[60vh] overflow-y-auto pr-2">
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Bell size={18} className="text-sky-500" />
-                      <span className="text-sm font-medium">Notifications</span>
-                    </div>
-                    <button 
-                      onClick={() => setSettings({...settings, notificationsEnabled: !settings.notificationsEnabled})}
-                      className={`w-12 h-6 rounded-full transition-colors relative ${settings.notificationsEnabled ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-700'}`}
-                    >
-                      <motion.div 
-                        animate={{ x: settings.notificationsEnabled ? 26 : 2 }}
-                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"
-                      />
-                    </button>
-                  </div>
-                  
-                  {/* 通知ステータスの表示 */}
-                  <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60">
-                      <span>Status</span>
-                      <span className={`font-bold ${
-                        notificationPermission === 'granted' ? 'text-emerald-500' : 
-                        notificationPermission === 'denied' ? 'text-orange-500' : 'text-amber-500'
-                      }`}>
-                        {notificationPermission === 'granted' ? 'Allowed' : 
-                         notificationPermission === 'denied' ? 'Blocked' : 'Not Set'}
-                      </span>
-                    </div>
-
-                    {/* 最終通知時刻の表示 */}
-                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60 mt-2">
-                      <span>Last Sent</span>
-                      <span className="font-mono">
-                        {lastNotificationTime 
-                          ? new Date(lastNotificationTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-                          : 'None'}
-                      </span>
-                    </div>
-
-                    {/* 最終テスト時刻の表示 */}
-                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60 mt-2">
-                      <span>Last Test</span>
-                      <span className="font-mono">
-                        {lastTestTime 
-                          ? new Date(lastTestTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
-                          : 'None'}
-                      </span>
-                    </div>
-
-                    {notificationPermission === 'denied' && (
-                      <p className="mt-2 text-[9px] text-orange-400 italic leading-relaxed">
-                        ※ ブラウザの設定で通知がブロックされています。設定から許可をお願いします。
-                      </p>
-                    )}
-                    
-                    {/* テスト通知ボタン */}
-                    <div className="mt-4">
-                      <button
-                        onClick={async (e) => {
-                          const btn = e.currentTarget;
-                          const originalText = btn.innerText;
-                          btn.innerText = "Sending...";
-                          btn.disabled = true;
-
-                          try {
-                            const now = Date.now();
-                            // 1. Service Worker 経由を試みる (より迅速に)
-                            if ('serviceWorker' in navigator) {
-                              // ready を待つのではなく、現在の登録状況を即座に確認
-                              const registration = await navigator.serviceWorker.getRegistration();
-                              
-                              if (registration && registration.active) {
-                                await registration.showNotification("水神の雫：テスト", {
-                                  body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                                  icon: "/pwa-192x192.png",
-                                  badge: "/pwa-192x192.png",
-                                  tag: "shizuku-test",
-                                });
-                                btn.innerText = "Sent!";
-                                setLastTestTime(now);
-                              } else {
-                                // 登録がないかアクティブでない場合は、タイムアウト付きで ready を待つ
-                                const swPromise = navigator.serviceWorker.ready;
-                                const timeoutPromise = new Promise((_, reject) => 
-                                  setTimeout(() => reject(new Error("Timeout")), 1000) // 1秒に短縮
-                                );
-                                
-                                const reg = await Promise.race([swPromise, timeoutPromise]) as ServiceWorkerRegistration;
-                                await reg.showNotification("水神の雫：テスト", {
-                                  body: "通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                                  icon: "/pwa-192x192.png",
-                                  badge: "/pwa-192x192.png",
-                                  tag: "shizuku-test",
-                                });
-                                btn.innerText = "Sent!";
-                                setLastTestTime(now);
-                              }
-                            } else {
-                              throw new Error("No SW support");
-                            }
-                          } catch (err) {
-                            console.log("SW通知失敗またはタイムアウト、通常通知を試みます:", err);
-                            const now = Date.now();
-                            // 2. フォールバック：通常の通知 (即座に実行)
-                            if ("Notification" in window && Notification.permission === "granted") {
-                              new Notification("水神の雫：テスト", {
-                                body: "（通常）通知の準備はバッチリです！しずくの声が届いていますか？✨",
-                                icon: "/pwa-192x192.png",
-                              });
-                              btn.innerText = "Sent!";
-                              setLastTestTime(now);
-                            } else {
-                              btn.innerText = "Error";
-                            }
-                          } finally {
-                            setTimeout(() => {
-                              btn.innerText = originalText;
-                              btn.disabled = false;
-                            }, 2000);
-                          }
-                        }}
-                        className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-50 ${
-                          isDarkMode ? 'bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30' : 'bg-sky-100 text-sky-600 hover:bg-sky-200'
-                        }`}
-                      >
-                        Test Notification
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="space-y-3">
                   <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 flex items-center gap-2">
                     <Sparkles size={12} /> Daily Goal: {settings.dailyGoal}ml
