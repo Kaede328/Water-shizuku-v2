@@ -286,8 +286,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <header className="w-full flex justify-between items-center pt-2 px-2 z-50">
-        <div className="flex gap-1"> {/* 隙間を詰めました */}
+      <header className="w-full grid grid-cols-3 items-center pt-2 px-2 z-50">
+        <div className="flex gap-1 justify-self-start"> {/* 隙間を詰めました */}
           <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-600'}`}>
             <Settings className="w-5 h-5" />
           </button>
@@ -296,11 +296,11 @@ export default function App() {
             {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
         </div>
-        <div className="text-center cursor-pointer" onClick={() => setShowConfirm(true)}>
+        <div className="text-center cursor-pointer justify-self-center" onClick={() => setShowConfirm(true)}>
           <h1 className={`text-xl font-light tracking-widest mb-0.5 transition-colors ${isDarkMode ? 'text-white' : 'text-sky-900'}`}>水神の雫</h1>
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-self-end pr-3">
           <button onClick={async () => {
             if ("Notification" in window) {
               const permission = await Notification.requestPermission();
