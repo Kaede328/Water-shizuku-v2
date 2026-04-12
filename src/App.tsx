@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, Music } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, Music, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -300,7 +300,14 @@ export default function App() {
           <h1 className={`text-xl font-light tracking-widest mb-0.5 transition-colors ${isDarkMode ? 'text-white' : 'text-sky-900'}`}>水神の雫</h1>
           <p className={`${isDarkMode ? 'text-indigo-300' : 'text-sky-400'} text-[9px] tracking-tighter uppercase font-medium`}>Pure Hydration</p>
         </div>
-        <div className="flex gap-2 justify-self-end pr-3">
+        <div className="flex gap-2 justify-self-end pr-3 items-center">
+          <button 
+            onClick={() => window.location.reload()} 
+            className={`p-2 transition-all active:rotate-180 duration-500 ${isDarkMode ? 'text-indigo-300' : 'text-sky-200'}`}
+            title="アプリを更新"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
           <button onClick={async () => {
             if ("Notification" in window) {
               const permission = await Notification.requestPermission();
