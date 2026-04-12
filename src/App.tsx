@@ -93,24 +93,36 @@ export default function App() {
       
       // 8時〜22時の間だけ
       if (currentHour >= 8 && currentHour <= 22) {
-        const lastSentHourStr = localStorage.getItem('shizuku_last_hour');
-        const lastSentHour = lastSentHourStr ? parseInt(lastSentHourStr, 10) : -1;
+        // 最後に通知を送った時間を確認
+        const lastSentTimeStr = localStorage.getItem('shizuku_last_sent_time');
+        const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
+        
+        // 最後に水を記録した時間を確認
+        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : 0;
+        
+        // 条件1: 前回の通知から1分以上経過している（テスト用に緩和）
+        // 条件2: 最後に記録してから30分以上経過している
+        const oneMinute = 60 * 1000;
+        const thirtyMinutes = 30 * 60 * 1000;
+        
+        const shouldNotify = (now.getTime() - lastSentTime > oneMinute) && 
+                           (now.getTime() - lastRecordTime > thirtyMinutes);
 
-        // まだこの時間の通知を送っていないなら
-        if (lastSentHour !== currentHour) {
+        if (shouldNotify) {
           // Service Worker の準備ができるのを待つ
           const registration = await navigator.serviceWorker.ready;
           if (registration) {
             try {
               await registration.showNotification("水神の雫", {
-                body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+                body: `そろそろ潤いの時間ではありませんか？✨\n一口飲んで、心も体もリフレッシュしましょう。`,
                 icon: "/pwa-192x192.png",
                 badge: "/pwa-192x192.png",
-                tag: "shizuku-daily-alert",
+                tag: "shizuku-hydration-alert",
                 renotify: true,
                 vibrate: [100, 50, 100],
               } as NotificationOptions);
-              localStorage.setItem('shizuku_last_hour', String(currentHour));
+              
+              localStorage.setItem('shizuku_last_sent_time', String(now.getTime()));
               setLastNotificationTime(now.getTime());
             } catch (err) {
               console.error("通知の送信に失敗しました:", err);
