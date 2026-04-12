@@ -98,7 +98,7 @@ export default function App() {
     registerSW();
   }, [settings.notificationsEnabled]);
 
-  // 2. 1時間ごとの定時通知ロジック（修正版：よりシンプルで執念深く）
+  // 2. 5分ごとのテスト通知ロジック（修正版：周期判定で確実に）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;
 
@@ -107,28 +107,33 @@ export default function App() {
 
       const now = new Date();
       const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
       
-      // 8時〜22時の間だけ
+      // 8時〜22時の間だけ動かします
       if (currentHour >= 8 && currentHour <= 22) {
-        // 本番通知専用の記録キーを使います（テスト通知と分けるため）
-        const lastProductionSentHour = localStorage.getItem('shizuku_last_prod_hour');
+        // 【ポイント】「何回目の5分間か」を計算します（例：15時10分なら「10÷5＝2回目」）
+        const intervalIndex = Math.floor(currentMinute / 5);
+        // 「時」と「5分周期のインデックス」を組み合わせて、ユニークなキーを作ります
+        const periodKey = `${currentHour}-${intervalIndex}`;
         
-        // 【ポイント】「その時間の通知をまだ送っていない」なら、即座に送る！
-        if (lastProductionSentHour !== String(currentHour)) {
+        const lastSentPeriod = localStorage.getItem('shizuku_last_test_period');
+
+        // この「5分間」の通知をまだ送っていないなら実行！
+        if (lastSentPeriod !== periodKey) {
           const registration = await navigator.serviceWorker.ready;
           if (registration) {
             try {
               await registration.showNotification("水神の雫", {
-                body: `${currentHour}時の潤いの時間です。一口いかがですか？✨`,
+                body: `5分ごとの潤いチェックです。今の気分はいかがですか？💧`,
                 icon: "/pwa-192x192.png",
                 badge: "/pwa-192x192.png",
-                tag: "shizuku-prod-alert", // タグを分けてテスト通知と区別
+                tag: "shizuku-5min-alert",
                 renotify: true,
                 vibrate: [100, 50, 100],
               } as NotificationOptions);
               
-              // 送った「時間（Hour）」を記録
-              localStorage.setItem('shizuku_last_prod_hour', String(currentHour));
+              // 送った「5分周期」を記憶に刻みます
+              localStorage.setItem('shizuku_last_test_period', periodKey);
               setLastNotificationTime(now.getTime());
             } catch (err) {
               console.error("通知の送信に失敗しました:", err);
@@ -138,7 +143,8 @@ export default function App() {
       }
     };
 
-    const timer = setInterval(checkAndNotify, 10000); // 10秒おきに監視
+    // 10秒おきにチェック（5分間隔を逃しません）
+    const timer = setInterval(checkAndNotify, 10000);
     checkAndNotify(); 
 
     return () => clearInterval(timer);
