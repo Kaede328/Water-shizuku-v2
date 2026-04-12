@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { initOneSignal } from './lib/onesignal';
+import { trackingService } from './lib/tracking';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
 
@@ -100,6 +101,12 @@ export default function App() {
 
   // ★ 音の処理を削除し、記録と祝福のロジックのみに整理
   const addWater = (amount: number) => {
+    // トラッキングの実行
+    trackingService.trackElement('add_water', { 
+      visualElementName: `add_water_${amount}ml`,
+      trackImpression: true 
+    });
+
     const now = Date.now();
     setRecordTimes(prev => [now, ...prev]); // 先に時間を更新
 
@@ -128,6 +135,11 @@ export default function App() {
   };
 
   const finalReset = () => {
+    // トラッキングの実行
+    trackingService.trackElement('reset_data', { 
+      visualElementId: 'btn_final_reset' 
+    });
+
     setTotalToday(0);
     setHistory([]);
     setRecordTimes([]);
@@ -170,7 +182,10 @@ export default function App() {
 
       <header className="w-full grid grid-cols-3 items-center pt-2 px-2 z-50">
         <div className="flex gap-1 justify-self-start"> {/* 隙間を詰めました */}
-          <button onClick={() => setShowSettings(true)} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-600'}`}>
+          <button onClick={() => {
+            trackingService.trackElement('open_settings', { visualElementId: 'btn_settings' });
+            setShowSettings(true);
+          }} className={`p-3 rounded-2xl transition-all active:scale-90 ${isDarkMode ? 'text-indigo-300' : 'text-sky-600'}`}>
             <Settings className="w-5 h-5" />
           </button>
           {/* 昼夜切り替えボタン（枠なし） */}
