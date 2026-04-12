@@ -2,8 +2,21 @@ import OneSignal from 'react-onesignal';
 
 export const initOneSignal = async () => {
   try {
+    // ブラウザ環境でない場合はスキップ
+    if (typeof window === 'undefined') return;
+
+    // 現在のホスト名を確認
+    const hostname = window.location.hostname;
+    const isAllowedDomain = hostname === 'kaede328.github.io' || hostname === 'localhost' || hostname === '127.0.0.1';
+
+    // 許可されたドメインでない場合は初期化をスキップ（エラーを避けるため）
+    if (!isAllowedDomain) {
+      console.log(`OneSignal initialization skipped on unauthorized domain: ${hostname}`);
+      return;
+    }
+
     // すでに初期化されている場合はスキップ
-    if (typeof window !== 'undefined' && (window as any).OneSignal && (window as any).OneSignal.initialized) {
+    if ((window as any).OneSignal && (window as any).OneSignal.initialized) {
       console.log('OneSignal is already initialized');
       return;
     }
@@ -40,5 +53,34 @@ export const initOneSignal = async () => {
       return;
     }
     console.error('Error initializing OneSignal:', err);
+  }
+};
+
+/**
+ * テスト通知を送信する
+ */
+export const sendTestNotification = async () => {
+  try {
+    if (!OneSignal.Notifications.permission) {
+      alert('通知の許可が必要です。画面右下のベルマークから許可してください。');
+      return;
+    }
+
+    // OneSignalのAPI経由で通知を送るにはサーバーサイドが必要なため、
+    // クライアントサイドでは「通知が有効か」の確認と、
+    // 擬似的な成功メッセージを表示します。
+    // 実際の定期通知はブラウザのスケジュール機能で実装します。
+    
+    // ブラウザ標準の通知APIを使用してテスト
+    if (Notification.permission === 'granted') {
+      new Notification('水神の雫', {
+        body: 'お水を飲む時間ですよ💧（テスト通知）',
+        icon: '/Water-shizuku-v2/Icon.jpg'
+      });
+    } else {
+      alert('ブラウザの通知許可がありません。');
+    }
+  } catch (error) {
+    console.error('Test notification error:', error);
   }
 };
