@@ -118,7 +118,8 @@ export default function App() {
         const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
         
         // 最後に水を記録した時間を確認
-        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : 0;
+        // 記録がない場合は、現在時刻より15分以上前の値をデフォルトにして、初回通知をスムーズにします
+        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : (now.getTime() - (20 * 60 * 1000));
         
         // 条件1: 前回の通知から15分以上経過している
         // 条件2: 最後に記録してから15分以上経過している
@@ -154,7 +155,7 @@ export default function App() {
     checkAndNotify(); // 起動時に即チェック
     const timer = setInterval(checkAndNotify, 30000); // 30秒ごとに見守る
     return () => clearInterval(timer);
-  }, [settings.notificationsEnabled]);
+  }, [settings.notificationsEnabled, recordTimes]);
 
   // 1. 自動リセット ＆ データ読み込みロジック
   useEffect(() => {
