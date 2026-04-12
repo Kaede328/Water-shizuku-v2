@@ -17,7 +17,10 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [overhydrationMsg, setOverhydrationMsg] = useState<string | null>(null);
   const [celebrateType, setCelebrateType] = useState<'normal' | 'special'>('normal');
-  const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(null);
+  const [lastNotificationTime, setLastNotificationTime] = useState<number | null>(() => {
+    const saved = localStorage.getItem('shizuku_last_sent_time');
+    return saved ? parseInt(saved, 10) : null;
+  });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
 
   const [settings, setSettings] = useState({
@@ -593,6 +596,17 @@ export default function App() {
                          notificationPermission === 'denied' ? 'Blocked' : 'Not Set'}
                       </span>
                     </div>
+
+                    {/* 最終通知時刻の表示 */}
+                    <div className="flex items-center justify-between text-[10px] uppercase tracking-widest opacity-60 mt-2">
+                      <span>Last Sent</span>
+                      <span className="font-mono">
+                        {lastNotificationTime 
+                          ? new Date(lastNotificationTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+                          : 'None'}
+                      </span>
+                    </div>
+
                     {notificationPermission === 'denied' && (
                       <p className="mt-2 text-[9px] text-orange-400 italic leading-relaxed">
                         ※ ブラウザの設定で通知がブロックされています。設定から許可をお願いします。
