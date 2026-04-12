@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -9,9 +9,7 @@ export default function App() {
   const [totalToday, setTotalToday] = useState(0);
   const [history, setHistory] = useState<number[]>([]);
   const [recordTimes, setRecordTimes] = useState<number[]>([]);
-  const [weeklyHistory, setWeeklyHistory] = useState<{date: string, amount: number}[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCelebrate, setShowCelebrate] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -22,6 +20,24 @@ export default function App() {
     return saved ? parseInt(saved, 10) : null;
   });
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [activeMessageIndex, setActiveMessageIndex] = useState(0);
+
+  const hydrationMessages = [
+    "お水は、心と体を繋ぐ優しい魔法ですよ。",
+    "一口の潤いが、あなたの明日を輝かせます。",
+    "ゆっくり、深く。体の中に清らかな流れを。",
+    "潤いに満ちた体は、幸運を引き寄せます。",
+    "自分を大切にする時間は、お水を飲むことから。",
+    "透き通るような美しさは、内側の潤いから始まります。",
+    "しずくが、あなたの健康をずっと見守っていますね。"
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveMessageIndex((prev) => (prev + 1) % hydrationMessages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
@@ -152,18 +168,13 @@ export default function App() {
       const lastSavedDate = parsed.lastResetDate;
 
       if (lastSavedDate && lastSavedDate !== todayStr) {
-        // 日付が変わっていたら、昨日の分を履歴に入れてからリセット
-        setWeeklyHistory(prev => {
-          const newHistory = [{ date: lastSavedDate, amount: parsed.totalToday || 0 }, ...prev].slice(0, 7);
-          return newHistory;
-        });
+        // 日付が変わっていたらリセット
         setTotalToday(0);
         setHistory([]);
         setRecordTimes([]);
       } else {
         setTotalToday(parsed.totalToday || 0);
         setHistory(parsed.history || []);
-        setWeeklyHistory(parsed.weeklyHistory || []);
         setRecordTimes(parsed.recordTimes || []); 
       }
       if (parsed.settings) setSettings(parsed.settings);
@@ -177,10 +188,10 @@ export default function App() {
   useEffect(() => {
     const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      totalToday, history, weeklyHistory, recordTimes, settings,
+      totalToday, history, recordTimes, settings,
       lastResetDate: todayStr // これで日付の変化を検知します
     }));
-  }, [totalToday, history, weeklyHistory, recordTimes, settings]);
+  }, [totalToday, history, recordTimes, settings]);
 
   // 1. シンプルなモード決定ロジック
   useEffect(() => {
@@ -219,60 +230,15 @@ export default function App() {
     setTotalToday(newTotal);
   };
 
-  // 1. お手紙のメッセージを生成する関数
-  const getWeeklyLetter = () => {
-    const daysCount = weeklyHistory.length;
-    
-    // データがまだ1日もない場合
-    if (daysCount === 0) {
-      return "楓さん、今日から新しい潤いの物語を一緒に綴っていきましょう。";
-    }
-
-    const total = weeklyHistory.reduce((sum, day) => sum + day.amount, 0);
-    const avg = Math.round(total / daysCount);
-    const sortedHistory = [...weeklyHistory].sort((a, b) => b.amount - a.amount);
-    const maxDay = sortedHistory[0];
-
-    // 1〜3日目のメッセージ
-    if (daysCount >= 1 && daysCount <= 3) {
-      return `まだ始まったばかりですが、${maxDay.date}の楓さんはとても澄み切っていました。少しずつ、体に潤いが馴染んできていますね。`;
-    }
-
-    // 4〜6日目のメッセージ
-    if (daysCount >= 4 && daysCount <= 6) {
-      return `もう数日も続いていますね。平均 ${avg}ml の潤いは、今の楓さんの体にとって、静かに染み渡る恵みの雨のようです。`;
-    }
-
-    // 7日目以上のメッセージ（従来のロジック）
-    const goalReachedCount = weeklyHistory.filter(day => day.amount >= settings.dailyGoal).length;
-    let message = `この一週間の楓さんは、${maxDay.date}に一番澄み切っていましたね。 `;
-    
-    if (goalReachedCount >= 5) {
-      message += "まるで豊かな水をたたえた美しい湖のような、満たされた日々でした。";
-    } else {
-      message += "穏やかな川のように、たゆまず潤いを重ねた楓さんの歩みを、しずくはずっと見ていましたよ。";
-    }
-
-    return message;
-  };
-
   const finalReset = () => {
-    const todayStr = new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
-    setWeeklyHistory(prev => {
-      const existingIndex = prev.findIndex(item => item.date === todayStr);
-      let newHistory = [...prev];
-      if (existingIndex !== -1) newHistory[existingIndex] = { date: todayStr, amount: totalToday };
-      else newHistory = [{ date: todayStr, amount: totalToday }, ...prev].slice(0, 7);
-      return newHistory;
-    });
     setTotalToday(0);
     setHistory([]);
     setRecordTimes([]);
+    localStorage.removeItem(STORAGE_KEY);
     setShowConfirm(false);
   };
 
   const waterPercentage = (totalToday % 1000) / 10;
-  const chartData = [...weeklyHistory].reverse();
 
   return (
     <div className={`h-screen w-full transition-all duration-1000 font-sans overflow-hidden flex flex-col items-center justify-between py-4 px-6 relative`}
@@ -336,9 +302,6 @@ export default function App() {
                     ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') 
                     : '')
             }`} />
-          </button>
-          <button onClick={() => setShowStats(!showStats)} className={`p-3 rounded-2xl transition-all active:scale-90 ${showStats ? (isDarkMode ? 'bg-indigo-500 text-white shadow-lg' : 'bg-sky-500 text-white shadow-lg') : (isDarkMode ? 'text-indigo-300' : 'text-sky-600')}`}>
-            <BarChart2 className="w-5 h-5" />
           </button>
         </div>
       </header>
@@ -456,62 +419,21 @@ export default function App() {
           <button onClick={() => { if (history.length > 0) { const [last, ...rem] = history; setTotalToday(last); setHistory(rem); } }} className={`p-2 ml-2 transition-all active:scale-90 ${history.length > 0 ? (isDarkMode ? 'text-indigo-400' : 'text-sky-500') : 'text-slate-300/30'}`}><Undo className="w-4 h-4" /></button>
         </div>
         
-        <AnimatePresence>
-          {showStats && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} 
-              className={`w-full max-w-[280px] backdrop-blur-md rounded-3xl p-5 overflow-hidden shadow-lg border mb-6 ${isDarkMode ? 'bg-slate-900/60 border-white/10' : 'bg-white/60 border-white/40'}`}
+        {/* モチベーションメッセージの表示（ホーム画面） */}
+        <div className="w-full max-w-[280px] text-center min-h-[60px] flex items-center justify-center px-4 z-20">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={activeMessageIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.8 }}
+              className={`text-[11px] leading-relaxed italic font-light ${isDarkMode ? 'text-indigo-200/70' : 'text-sky-800/70'}`}
             >
-              <p className={`text-[10px] font-bold mb-3 tracking-widest uppercase text-center ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly History</p>
-              <div className="h-24 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={chartData} 
-                    margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
-                    /* ★棒が太くなりすぎないように調整 */
-                    barCategoryGap="40%"
-                  >
-                    <XAxis 
-                      dataKey="date" 
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 9, opacity: 0.5, fill: isDarkMode ? '#fff' : '#000' }}
-                      dy={10} // 少し下にずらして見やすく
-                    />
-                    <YAxis hide domain={[0, settings.dailyGoal]} />
-                    <Bar 
-                      dataKey="amount" 
-                      radius={[4, 4, 0, 0]} 
-                      maxBarSize={8} // ★ここで1本の太さを細く固定します
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          /* 達成した日は輝く青、それ以外はごく淡い色に */
-                          fill={entry.amount >= settings.dailyGoal 
-                            ? (isDarkMode ? '#818cf8' : '#38bdf8') 
-                            : (isDarkMode ? 'rgba(129, 140, 248, 0.15)' : 'rgba(186, 230, 253, 0.3)')
-                          } 
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* お手紙セクション */}
-              <div className={`mt-4 pt-4 border-t ${isDarkMode ? 'border-white/10' : 'border-sky-100'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles size={12} className={isDarkMode ? 'text-indigo-400' : 'text-sky-500'} />
-                  <span className={`text-[9px] font-bold tracking-widest uppercase ${isDarkMode ? 'text-indigo-400' : 'text-sky-500'}`}>Weekly Letter</span>
-                </div>
-                <p className={`text-[11px] leading-relaxed italic font-light ${isDarkMode ? 'text-indigo-200/80' : 'text-sky-800/80'}`}>
-                  「{getWeeklyLetter()}」
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              「{hydrationMessages[activeMessageIndex]}」
+            </motion.p>
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* ★ 250ml & 500ml：氷のような透明感のあるボタン */}
@@ -708,10 +630,10 @@ export default function App() {
               }`}
             >
               <p className={`mb-8 font-bold leading-relaxed ${isDarkMode ? 'text-white' : 'text-sky-950'}`}>
-                今日の記録をリセットして<br/>履歴に保存しますか？
+                今日の記録をリセットしますか？
               </p>
               <div className="flex flex-col gap-3">
-                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98]">リセットして保存</button>
+                <button onClick={finalReset} className="w-full py-4 bg-sky-500 text-white rounded-2xl font-bold shadow-lg shadow-sky-500/20 active:scale-[0.98]">リセットする</button>
                 <button onClick={() => setShowConfirm(false)} className={`w-full py-4 rounded-2xl font-medium ${isDarkMode ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>キャンセル</button>
               </div>
             </motion.div>
