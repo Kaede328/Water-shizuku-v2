@@ -98,6 +98,26 @@ export default function App() {
     registerSW();
   }, [settings.notificationsEnabled]);
 
+  // 3. Background Fetch の登録（iOS等でのバックグラウンド動作の可能性を広げる）
+  useEffect(() => {
+    const registerBackgroundFetch = async () => {
+      if ('serviceWorker' in navigator && 'BackgroundFetchManager' in window) {
+        const registration = await navigator.serviceWorker.ready;
+        try {
+          // iPhone等に「定期的に裏側でチェックしてね」と予約を入れます
+          await (registration as any).backgroundFetch.fetch('shizuku-fetch', ['/index.html'], {
+            title: 'しずくの見守り',
+            downloadTotal: 1000, 
+          });
+          console.log('Background Fetchの予約が完了しました！');
+        } catch (err) {
+          console.log('Background Fetchの予約に失敗しました（すでにあるか、未対応です）');
+        }
+      }
+    };
+    registerBackgroundFetch();
+  }, []);
+
   // 2. 5分ごとのテスト通知ロジック（修正版：周期判定で確実に）
   useEffect(() => {
     if (!settings.notificationsEnabled) return;

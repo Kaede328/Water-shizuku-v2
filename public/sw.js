@@ -43,3 +43,15 @@ async function sendHourlyNotification() {
     });
   }
 }
+
+// Background Fetch 成功時の処理
+self.addEventListener('backgroundfetchsuccess', (event) => {
+  event.waitUntil(
+    self.registration.showNotification("水神の雫", {
+      body: "iPhoneがしずくを起こしてくれました！潤いの時間ですよ✨",
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
+      tag: "shizuku-bg-fetch",
+    })
+  );
+});
