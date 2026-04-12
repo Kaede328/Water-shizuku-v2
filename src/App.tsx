@@ -118,15 +118,14 @@ export default function App() {
         const lastSentTime = lastSentTimeStr ? parseInt(lastSentTimeStr, 10) : 0;
         
         // 最後に水を記録した時間を確認
-        // 記録がない場合は、現在時刻より15分以上前の値をデフォルトにして、初回通知をスムーズにします
-        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : (now.getTime() - (20 * 60 * 1000));
+        // 記録がない場合は、現在時刻より5分以上前の値をデフォルトにして、初回通知をスムーズにします
+        const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : (now.getTime() - (10 * 60 * 1000));
         
-        // 条件1: 前回の通知から15分以上経過している
-        // 条件2: 最後に記録してから15分以上経過している
-        const fifteenMinutes = 15 * 60 * 1000;
+        // 【テスト用】通知間隔を15分から5分に短縮しました
+        const notificationInterval = 5 * 60 * 1000;
         
-        const shouldNotify = (now.getTime() - lastSentTime > fifteenMinutes) && 
-                           (now.getTime() - lastRecordTime > fifteenMinutes);
+        const shouldNotify = (now.getTime() - lastSentTime > notificationInterval) && 
+                           (now.getTime() - lastRecordTime > notificationInterval);
 
         if (shouldNotify) {
           // Service Worker の準備ができるのを待つ
@@ -153,7 +152,7 @@ export default function App() {
     };
 
     checkAndNotify(); // 起動時に即チェック
-    const timer = setInterval(checkAndNotify, 30000); // 30秒ごとに見守る
+    const timer = setInterval(checkAndNotify, 10000); // チェック間隔を30秒から10秒に短縮
     return () => clearInterval(timer);
   }, [settings.notificationsEnabled, recordTimes]);
 
