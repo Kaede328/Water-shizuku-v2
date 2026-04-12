@@ -135,27 +135,42 @@ export default function App() {
 
         // 「今の時間」がまだ未送信なら、何度でもトライする
         if (lastSentHour !== currentHour) {
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration) {
-            try {
-              // iOS向けの通知オプションを最大化
+          try {
+            // 1. まずは Service Worker 経由を試みる（バックグラウンド対応）
+            const registration = await navigator.serviceWorker.ready;
+            if (registration) {
               await registration.showNotification("水神の雫", {
                 body: `${currentHour}時の潤いの時間です。一口いかがですか？💧`,
                 icon: "/pwa-192x192.png",
                 badge: "/pwa-192x192.png",
-                tag: "shizuku-alert", // 同じタグで上書き
+                tag: "shizuku-alert",
                 renotify: true,
-                silent: false, // 音を出す
+                silent: false,
                 vibrate: [100, 50, 100],
-                requireInteraction: true // 楓さんが消すまで残るように促す
+                requireInteraction: true
               } as NotificationOptions);
               
               localStorage.setItem('shizuku_last_hour', String(currentHour));
               setLastNotificationTime(now.getTime());
-              console.log(`${currentHour}時の通知を裏方さんに託しました。`);
-            } catch (err) {
-              console.error("通知の送信に失敗しました:", err);
+              console.log(`${currentHour}時の通知をSW経由で送りました。`);
+              return; // 成功したら終了
             }
+          } catch (swErr) {
+            console.log("SW経由の通知に失敗しました。フォールバックを試みます:", swErr);
+          }
+
+          // 2. フォールバック：通常の Notification オブジェクト（フォアグラウンド用）
+          try {
+            new Notification("水神の雫", {
+              body: `${currentHour}時の潤いの時間です。一口いかがですか？💧`,
+              icon: "/pwa-192x192.png",
+              tag: "shizuku-alert",
+            });
+            localStorage.setItem('shizuku_last_hour', String(currentHour));
+            setLastNotificationTime(now.getTime());
+            console.log(`${currentHour}時の通知を通常Notificationで送りました。`);
+          } catch (err) {
+            console.error("すべての通知手段に失敗しました:", err);
           }
         }
       }
