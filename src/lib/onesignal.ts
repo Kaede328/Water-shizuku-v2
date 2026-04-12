@@ -26,6 +26,14 @@ export const initOneSignal = async () => {
       allowLocalhostAsSecureOrigin: true, // 開発環境での動作を許可
       notifyButton: {
         enable: true,
+        displayPredicate: null, // 常に表示させる設定
+        size: 'medium',
+        position: 'bottom-right',
+        offset: {
+          bottom: '20px',
+          right: '20px',
+          left: '0px'
+        },
         prenotify: true,
         showCredit: false,
         text: {
