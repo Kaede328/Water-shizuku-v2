@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { initOneSignal } from './lib/onesignal';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
 
 export default function App() {
   const [totalToday, setTotalToday] = useState(0);
+
+  useEffect(() => {
+    initOneSignal();
+  }, []);
+
   const [history, setHistory] = useState<number[]>([]);
   const [recordTimes, setRecordTimes] = useState<number[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
