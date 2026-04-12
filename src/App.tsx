@@ -82,7 +82,7 @@ export default function App() {
             });
             if (status.state === 'granted') {
               await (registration as any).periodicSync.register('shizuku-hourly-check', {
-                minInterval: 60 * 60 * 1000, // 1時間ごと
+                minInterval: 15 * 60 * 1000, // 15分ごと
               });
             }
           } catch (e) {
@@ -119,13 +119,12 @@ export default function App() {
         // 最後に水を記録した時間を確認
         const lastRecordTime = recordTimes.length > 0 ? recordTimes[0] : 0;
         
-        // 条件1: 前回の通知から1分以上経過している（テスト用に緩和）
-        // 条件2: 最後に記録してから30分以上経過している
-        const oneMinute = 60 * 1000;
-        const thirtyMinutes = 30 * 60 * 1000;
+        // 条件1: 前回の通知から15分以上経過している
+        // 条件2: 最後に記録してから15分以上経過している
+        const fifteenMinutes = 15 * 60 * 1000;
         
-        const shouldNotify = (now.getTime() - lastSentTime > oneMinute) && 
-                           (now.getTime() - lastRecordTime > thirtyMinutes);
+        const shouldNotify = (now.getTime() - lastSentTime > fifteenMinutes) && 
+                           (now.getTime() - lastRecordTime > fifteenMinutes);
 
         if (shouldNotify) {
           // Service Worker の準備ができるのを待つ
