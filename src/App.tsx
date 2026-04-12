@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets } from 'lucide-react';
+import { Plus, RotateCcw, Undo, BarChart2, Bell, Sparkles, Moon, Sun, Settings, X, Droplets, Music } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 const STORAGE_KEY = 'water-shizuku-v10-final';
@@ -22,6 +22,18 @@ export default function App() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [activeMessageIndex, setActiveMessageIndex] = useState(0);
 
+  const notificationSounds = [
+    { id: 'droplet', name: '雫の音', url: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' },
+    { id: 'stream', name: '清流の音', url: 'https://assets.mixkit.co/active_storage/sfx/1114/1114-preview.mp3' },
+    { id: 'bell', name: '癒しの鐘', url: 'https://assets.mixkit.co/active_storage/sfx/1087/1087-preview.mp3' },
+  ];
+
+  const playSound = (url: string) => {
+    const audio = new Audio(url);
+    audio.volume = 0.4;
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  };
+
   const hydrationMessages = [
     "お水は、心と体を繋ぐ優しい魔法ですよ。",
     "一口の潤いが、あなたの明日を輝かせます。",
@@ -42,7 +54,8 @@ export default function App() {
   const [settings, setSettings] = useState({
     notificationsEnabled: true,
     dailyGoal: 2500,
-    forceNightMode: false
+    forceNightMode: false,
+    notificationSound: 'droplet'
   });
 
   // ★ 過剰摂取チェック：1000ml以上の時に、潤いの知恵をそっと伝える
@@ -131,17 +144,20 @@ export default function App() {
           const registration = await navigator.serviceWorker.ready;
           if (registration) {
             try {
-              await registration.showNotification("水神の雫", {
-                body: `そろそろ潤いの時間ではありませんか？✨\n一口飲んで、心も体もリフレッシュしましょう。`,
-                icon: "/pwa-192x192.png",
-                badge: "/pwa-192x192.png",
-                tag: "shizuku-hydration-alert",
-                renotify: true,
-                vibrate: [100, 50, 100],
-              } as NotificationOptions);
-              
-              localStorage.setItem('shizuku_last_sent_time', String(now.getTime()));
-              setLastNotificationTime(now.getTime());
+                await registration.showNotification("水神の雫", {
+                  body: `そろそろ潤いの時間ではありませんか？✨\n一口飲んで、心も体もリフレッシュしましょう。`,
+                  icon: "/pwa-192x192.png",
+                  badge: "/pwa-192x192.png",
+                  tag: "shizuku-hydration-alert",
+                  renotify: true,
+                  vibrate: [100, 50, 100],
+                } as NotificationOptions);
+                
+                const sound = notificationSounds.find(s => s.id === settings.notificationSound);
+                if (sound) playSound(sound.url);
+
+                localStorage.setItem('shizuku_last_sent_time', String(now.getTime()));
+                setLastNotificationTime(now.getTime());
             } catch (err) {
               console.error("通知の送信に失敗しました:", err);
             }
@@ -558,6 +574,8 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
+                                const sound = notificationSounds.find(s => s.id === settings.notificationSound);
+                                if (sound) playSound(sound.url);
                                 setLastNotificationTime(now);
                                 localStorage.setItem('shizuku_last_sent_time', String(now));
                               } else {
@@ -575,6 +593,8 @@ export default function App() {
                                   tag: "shizuku-test",
                                 });
                                 btn.innerText = "Sent!";
+                                const sound = notificationSounds.find(s => s.id === settings.notificationSound);
+                                if (sound) playSound(sound.url);
                                 setLastNotificationTime(now);
                                 localStorage.setItem('shizuku_last_sent_time', String(now));
                               }
@@ -591,6 +611,8 @@ export default function App() {
                                 icon: "/pwa-192x192.png",
                               });
                               btn.innerText = "Sent!";
+                              const sound = notificationSounds.find(s => s.id === settings.notificationSound);
+                              if (sound) playSound(sound.url);
                               setLastNotificationTime(now);
                               localStorage.setItem('shizuku_last_sent_time', String(now));
                             } else {
@@ -610,6 +632,32 @@ export default function App() {
                         Test Notification
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Music size={18} className="text-sky-500" />
+                    <span className="text-sm font-medium">Notification Sound</span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {notificationSounds.map((sound) => (
+                      <button
+                        key={sound.id}
+                        onClick={() => {
+                          setSettings({...settings, notificationSound: sound.id});
+                          playSound(sound.url);
+                        }}
+                        className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                          settings.notificationSound === sound.id
+                            ? (isDarkMode ? 'bg-indigo-500/20 border-indigo-500 text-indigo-200' : 'bg-sky-500/10 border-sky-500 text-sky-700')
+                            : (isDarkMode ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-600')
+                        }`}
+                      >
+                        <span className="text-xs font-medium">{sound.name}</span>
+                        {settings.notificationSound === sound.id && <Sparkles size={12} />}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
