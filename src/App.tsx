@@ -203,7 +203,6 @@ export default function App() {
   const addWater = (amount: number) => {
     const now = Date.now();
     setRecordTimes(prev => [now, ...prev]); // 先に時間を更新
-    setLastNotificationTime(null); // 飲んだので通知フラグをリセット
 
     // 飲みすぎチェックのみ実行
     checkOverhydration(amount);
